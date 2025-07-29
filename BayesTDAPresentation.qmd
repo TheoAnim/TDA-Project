@@ -24,7 +24,7 @@ format:
     toc-depth: 1
     preview-links: true
     slide-number: c/t
-    multiplex: true
+    multiplex: false
     embed-resources: true
     auto-animate: true
     footer: "Thomas Reinke"

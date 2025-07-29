@@ -123,6 +123,17 @@ $$
 
 # TDA Methodology {#sec-TDAMethod}
 
+## Previous TDA Work
+
+:::{.fragment}
+* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
+* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
+* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
+* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@doi:10.1073/pnas.1102826108]
+* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
+:::
+
+
 # Machine Learning/Classification Methods {#sec-MLMethod}
 
 # MNIST Overview {#sec-MNIST}

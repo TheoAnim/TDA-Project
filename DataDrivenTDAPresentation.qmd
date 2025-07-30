@@ -78,6 +78,7 @@ library(simplextree)
 library(gifski)
 library(magick)  
 library(ripserr)
+library(reshape2)
 # remotes::install_github("maroulaslab/BayesTDA") Use this if package ‘BayesTDA’ is not available for this version of R
 library(BayesTDA)
 library(TDAstats)
@@ -154,7 +155,7 @@ meaning brings value."
 ## Example Data
 
 ```{r ex_df, fig.dim=c(6,6)}
-set.seed(1)
+set.seed(497184)
 
 p1 <- tdaunif::sample_circle(n = 40L, sd = .05)
 p2 <- tdaunif::sample_circle(n = 20L, sd = .025) / 2
@@ -257,11 +258,11 @@ p_d <- ggplot(df, aes(x = x, y = y)) +
   geom_point() +
   theme_bw()
 
-p1 <- ggplot(df, aes(x, y)) +
+plot1 <- ggplot(df, aes(x, y)) +
   geom_simplicial_complex(radius = .25) +
   coord_fixed()
 
-p2 <- ggplot(df, aes(x, y)) +
+plot2 <- ggplot(df, aes(x, y)) +
   geom_simplicial_complex(
     mapping = aes(fill = after_stat(face)),
     dimension_max = 4L,
@@ -284,7 +285,7 @@ p2 <- ggplot(df, aes(x, y)) +
 #   scale_fill_viridis_d(direction = -1, aesthetics = c("color", "fill")) +
 #   coord_fixed()
 
-p_d + p1
+p_d + plot1
 
 # p1 + p2 + p3 + p4 +
 #   plot_layout(
@@ -617,7 +618,9 @@ This formula gives the posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}
 * A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
 :::
 
-## Machine Learning Methods {#sec-MLMethod}
+# Machine Learning & Classification {#sec-MLMethod}
+
+## Machine Learning Methods 
 :::{.columns}
 
 ::: {.column}
@@ -637,9 +640,137 @@ This formula gives the posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}
 :::
 
 
+## Bottleneck & Wasserstein Distance {.smaller}
+
+For 2 Persistence Diagrams $X$ & $Y$:
+
+:::{.fragment}
+- **Bottleneck Distance**:  
+  Measures the maximum distance between matched points in persistence diagrams (PDs).  
+    - Sensitive to outliers (dominated by the largest mismatch).  
+    
+  $$
+  W_\infty(X,Y) = \inf_\limits{\eta: X \rightarrow{} Y} \sup_\limits{x \in X} \|x - \eta(x)\|_\infty
+  $$
+  
+
+:::
+
+:::{.fragment}
+- **Wasserstein Distance**:  
+  Measures the "work" required to transform one PD into another.  
+    - Robust to outliers (aggregates all mismatches).  
+
+$$
+W_q(X,Y) = \left[ \inf_\limits{\eta: X \rightarrow{} Y} \sum_\limits{x \in X} \|x - \eta(x)\|^p_\infty \right]^{1/p}
+$$
+
+:::
+
+:::{.notes}
+- $\eta$ is a bijection
+- $L_\infty = \max{\{|x_1-y_1|, |x_2 - y_2|, \ldots \}}$
+- **Bottleneck**: Useful for detecting *critical* topological features (e.g., a single hole vs. no holes).  
+    - supremum of distances between corresponding points for each. THen infimum over all bijections.
+- **Wasserstein**: Better for *global* comparisons (e.g., distributions of holes in similar shapes).
+    - sum of qth powers of the $L_\infty$ distances, and again, minimizing over the bijections
+- Bottleneck is Wasserstein as $q \rightarrow{} \infty$
+- For each PD, we are adding infinite points along diagonal
+:::
+
 ## Bottleneck & Wasserstein Distance
 
+```{r, fig.dim=c(10,6)}
+rips_data1 <- ripserr::vietoris_rips(p1) |> as.matrix()
+rips_data2 <- ripserr::vietoris_rips(p2) |> as.matrix()
+
+bottleneck_dist <- TDA::bottleneck(rips_data1, rips_data2)
+wasserstein_dist <- TDA::wasserstein(rips_data1, rips_data2, p = 2)
+
+rips_data_combined <- bind_rows(
+  rips_data1 |> as_tibble() |> mutate(dataset = "Larger Circle"),
+  rips_data2 |> as_tibble() |> mutate(dataset = "Smaller Circle")
+)
+
+ggplot(rips_data_combined) +
+  stat_persistence(
+    aes(start = birth, end = death,
+        color = factor(dimension), shape = factor(dimension)),
+    size = 2.5, alpha = .75
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.6) +
+  scale_color_viridis_d(end = .7, name = "Dimension") +
+  scale_shape_discrete(name = "Dimension") +
+  labs(title = "Persistence Diagram") +
+  facet_wrap(~ dataset, ncol = 2) +
+  coord_cartesian(ylim = c(0, 1.65), xlim = c(0, 1.65)) +
+  theme(legend.position = "bottom")
+```
+
+:::{.notes}
+$\color{green}{\text{For dimension 1, loops/hole of circle}}$
+
+- Bottleneck: `r bottleneck_dist |> round(4)`
+- Wasserstein: p=2 `r wasserstein_dist |> round(4)`
+
+- For dimension 0:
+    - Bottleneck: `r TDA::bottleneck(rips_data1, rips_data2, dimension = 0) |> round(4)`
+    - Wasserstein: p=2 `r TDA::wasserstein(rips_data1, rips_data2, p = 2, dimension = 0) |> round(4)`
+:::
+
 # MNIST Overview {#sec-MNIST}
+
+## Data Overview
+
+## Example digit
+
+```{r}
+# mnist <- dslabs::read_mnist()
+# saveRDS(mnist, file = "mnist_dataset")
+mnist <- readRDS(file = "mnist_dataset")
+
+train <- mnist$train
+test <- mnist$test
+```
+
+
+```{r}
+train_images <- train$images  # Matrix of size 60,000 x 784
+train_labels <- as.factor(train$labels)  # Factorized labels (0-9)
+
+test_images <- test$images   # Matrix of size 10,000 x 784
+test_labels <- as.factor(test$labels)
+
+train_images <- train_images / 255
+test_images <- test_images / 255
+
+train_images_list <- lapply(1:nrow(train_images), function(i) {
+  matrix(train_images[i, ], nrow = 28) |> t()
+})
+
+test_images_list <- lapply(1:nrow(test_images), function(i) {
+  matrix(test_images[i, ], nrow = 28) |> t()
+})
+
+```
+
+
+```{r}
+df <- melt(train_images_list[1111])
+colnames(df) <- c("y", "x", "value")  
+
+ggplot(df, aes(x = x, y = y, fill = value)) +
+  geom_raster() +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_reverse() + 
+  theme_void() + 
+  theme(legend.position = "none") 
+train$labels[1111]
+```
+
+## Binarization
+
+## Cubical Complexes
 
 # Analysis {#sec-Analysis}
 

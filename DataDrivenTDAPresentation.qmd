@@ -11,7 +11,7 @@ authors:
         # country: US
         url: https://www.baylor.edu
     # email: thomas_reinke1@baylor.edu
-  - name: Theophilus Anim Bediako
+  - name: Theophilus A. Bediako
     affiliation: 
       - name: Baylor University
         department: Statistical Science
@@ -43,7 +43,7 @@ format:
     multiplex: false
     embed-resources: true
     auto-animate: true
-    footer: "Thomas Reinke"
+    #footer: "Thomas Reinke"
 bibliography: references.bibtex
 lightbox:
   match: auto
@@ -114,7 +114,7 @@ $$
 # Contents
 
 
-1. [Into to TDA](#sec-TDAIntro)
+1. [Intro to TDA](#sec-TDAIntro)
 1. [TDA Methodology](#sec-TDAMethod) <!--Bayes TDA Methodology-->
 1. [Machine Learning/Classification Methods](#sec-MLMethod)
 1. [MNIST Overview](#sec-MNIST)
@@ -617,7 +617,25 @@ This formula gives the posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}
 * A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
 :::
 
-# Machine Learning/Classification Methods {#sec-MLMethod}
+## Machine Learning Methods {#sec-MLMethod}
+:::{.columns}
+
+::: {.column}
+:::{.fragment}
+- Naive Bayes  
+- K-Nearest Neighbor
+:::
+:::
+
+::: {.column}
+:::{.fragment}
+- Random Forest  
+- Neural Network
+:::
+:::
+
+:::
+
 
 ## Bottleneck & Wasserstein Distance
 

@@ -123,6 +123,79 @@ $$
 1. [Results/Future Work](#sec-Results)
 1. [References](#sec-References)
 
+# MNIST Overview {#sec-MNIST}
+
+## Data Overview
+
+## Example digit
+
+```{r}
+# mnist <- dslabs::read_mnist()
+# saveRDS(mnist, file = "mnist_dataset")
+mnist <- readRDS(file = "mnist_dataset")
+
+train <- mnist$train
+test <- mnist$test
+```
+
+
+```{r}
+train_images <- train$images  # Matrix of size 60,000 x 784
+train_labels <- as.factor(train$labels)  # Factorized labels (0-9)
+
+test_images <- test$images   # Matrix of size 10,000 x 784
+test_labels <- as.factor(test$labels)
+
+train_images <- train_images / 255
+test_images <- test_images / 255
+
+train_images_list <- lapply(1:nrow(train_images), function(i) {
+  matrix(train_images[i, ], nrow = 28) |> t()
+})
+
+test_images_list <- lapply(1:nrow(test_images), function(i) {
+  matrix(test_images[i, ], nrow = 28) |> t()
+})
+
+```
+
+
+```{r}
+df <- melt(train_images_list[1111])
+colnames(df) <- c("y", "x", "value")  
+
+ggplot(df, aes(x = x, y = y, fill = value)) +
+  geom_raster() +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_reverse() + 
+  theme_void() + 
+  theme(legend.position = "none") 
+train$labels[1111]
+```
+
+## Binarization
+
+# Machine Learning & Classification {#sec-MLMethod}
+
+## Machine Learning Methods 
+:::{.columns}
+
+::: {.column}
+:::{.fragment}
+- Naive Bayes  
+- K-Nearest Neighbor
+:::
+:::
+
+::: {.column}
+:::{.fragment}
+- Random Forest  
+- Neural Network
+:::
+:::
+
+:::
+
 
 # Intro To TDA {#sec-TDAIntro}
 
@@ -608,36 +681,8 @@ This formula gives the posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}
     * "Almost surely" is a standard term in probability theory meaning the equality holds *with probability 1*. It asserts that for any specific set of observations $D_{Y^{1:m}}$ you might get (excluding zero-probability outcomes), this formula correctly describes the posterior intensity.
 :::
 
-## Previous TDA Work
 
-:::{.fragment}
-* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
-* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
-* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
-* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@doi:10.1073/pnas.1102826108]
-* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
-:::
 
-# Machine Learning & Classification {#sec-MLMethod}
-
-## Machine Learning Methods 
-:::{.columns}
-
-::: {.column}
-:::{.fragment}
-- Naive Bayes  
-- K-Nearest Neighbor
-:::
-:::
-
-::: {.column}
-:::{.fragment}
-- Random Forest  
-- Neural Network
-:::
-:::
-
-:::
 
 
 ## Bottleneck & Wasserstein Distance {.smaller}
@@ -718,59 +763,17 @@ $\color{green}{\text{For dimension 1, loops/hole of circle}}$
     - Wasserstein: p=2 `r TDA::wasserstein(rips_data1, rips_data2, p = 2, dimension = 0) |> round(4)`
 :::
 
-# MNIST Overview {#sec-MNIST}
-
-## Data Overview
-
-## Example digit
-
-```{r}
-# mnist <- dslabs::read_mnist()
-# saveRDS(mnist, file = "mnist_dataset")
-mnist <- readRDS(file = "mnist_dataset")
-
-train <- mnist$train
-test <- mnist$test
-```
-
-
-```{r}
-train_images <- train$images  # Matrix of size 60,000 x 784
-train_labels <- as.factor(train$labels)  # Factorized labels (0-9)
-
-test_images <- test$images   # Matrix of size 10,000 x 784
-test_labels <- as.factor(test$labels)
-
-train_images <- train_images / 255
-test_images <- test_images / 255
-
-train_images_list <- lapply(1:nrow(train_images), function(i) {
-  matrix(train_images[i, ], nrow = 28) |> t()
-})
-
-test_images_list <- lapply(1:nrow(test_images), function(i) {
-  matrix(test_images[i, ], nrow = 28) |> t()
-})
-
-```
-
-
-```{r}
-df <- melt(train_images_list[1111])
-colnames(df) <- c("y", "x", "value")  
-
-ggplot(df, aes(x = x, y = y, fill = value)) +
-  geom_raster() +
-  scale_fill_gradient(low = "white", high = "black") +
-  scale_y_reverse() + 
-  theme_void() + 
-  theme(legend.position = "none") 
-train$labels[1111]
-```
-
-## Binarization
-
 ## Cubical Complexes
+
+## Previous TDA Work
+
+:::{.fragment}
+* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
+* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
+* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
+* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@doi:10.1073/pnas.1102826108]
+* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
+:::
 
 # Analysis {#sec-Analysis}
 

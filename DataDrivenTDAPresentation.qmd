@@ -1,6 +1,6 @@
 ---
 title: "The Shape of Digits"
-subtitle: "A Bayesian Topological Data Analytic Approach to Classification of Handrwritten Digits"
+subtitle: "A Bayesian Topological Data Analytic Approach to Classification of Handwritten Digits"
 authors:
   - name: Thomas Reinke
     affiliation: 
@@ -94,7 +94,7 @@ knitr::opts_chunk$set(
   comment = "#>",
   message = FALSE,
   warning = FALSE,
-  cache = TRUE,
+  cache = FALSE,
   echo = FALSE,
   tidy.opts = list(width.cutoff = 100),
   tidy = FALSE,
@@ -114,11 +114,10 @@ $$
 
 # Contents
 
-
+1. [MNIST Overview](#sec-MNIST)
+1. [Machine Learning/Classification Methods](#sec-MLMethod)
 1. [Intro to TDA](#sec-TDAIntro)
 1. [TDA Methodology](#sec-TDAMethod) <!--Bayes TDA Methodology-->
-1. [Machine Learning/Classification Methods](#sec-MLMethod)
-1. [MNIST Overview](#sec-MNIST)
 1. [Analysis](#sec-Analysis)
 1. [Results/Future Work](#sec-Results)
 1. [References](#sec-References)
@@ -161,19 +160,39 @@ test_images_list <- lapply(1:nrow(test_images), function(i) {
 
 
 ```{r}
-df <- melt(train_images_list[1111])
-colnames(df) <- c("y", "x", "value")  
-
-ggplot(df, aes(x = x, y = y, fill = value)) +
-  geom_raster() +
+plot_digit <- \(image_list = train_images_list, image_index = NULL, image_df = NULL, melted = FALSE){
+  if(!melted){
+    image_df <- melt(image_list[image_index])
+    colnames(image_df) <- c("y", "x", "value")
+  }
+  ggplot(image_df, aes(x = x, y = y, fill = value)) + 
+    geom_raster() +
   scale_fill_gradient(low = "white", high = "black") +
   scale_y_reverse() + 
+  coord_equal() +
   theme_void() + 
   theme(legend.position = "none") 
-train$labels[1111]
+}
+
+plot_digit(image_index = 8)
+train$labels[8]
 ```
 
 ## Binarization
+
+
+```{r}
+binarize_images <- function(images_list, threshold = 0.5) {
+  lapply(images_list, function(mat) {
+    ifelse(mat < threshold, 0, 1)
+  })
+}
+
+train_images_binarized <- binarize_images(train_images_list)
+
+plot_digit(image_index = 8) + plot_digit(train_images_binarized, image_index = 8)
+
+```
 
 # Machine Learning & Classification {#sec-MLMethod}
 
@@ -196,6 +215,16 @@ train$labels[1111]
 
 :::
 
+## Previous TDA Work
+
+:::{.fragment}
+* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
+* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
+* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
+* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@doi:10.1073/pnas.1102826108]
+* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
+:::
+
 
 # Intro To TDA {#sec-TDAIntro}
 
@@ -210,25 +239,26 @@ meaning brings value."
 
 ## Introductory TDA
 
-:::{.incremental}
-- Explore topological structure in datasets
-    - Persistent homolgy, associate shapes to data & summarize features
-    - Persitence diagrams, Mapper, etc.
-:::
+<!-- :::{.incremental} -->
+<!-- - Explore topological structure in datasets -->
+<!--     - Persistent homolgy, associate shapes to data & summarize features -->
+<!--     - Persitence diagrams, Mapper, etc. -->
+<!-- ::: -->
 
 :::{.incremental}
-- Applicable to many areas
+- Applications in many areas
     - handwriting analysis, brain arteries, image analysis, neuroscience, sensor networks, protein structures, biology, dynamical systems, action recognition, signal analysis, chemistry, genetics, object data, etc.
 :::
 
 :::{.fragment}
 - Dimension reduction by topological features
+    - Analogous to statistic computed from data
 :::
 
-## Example Data
+## Motivating Example
 
 ```{r ex_df, fig.dim=c(6,6)}
-set.seed(497184)
+set.seed(3051936)
 
 p1 <- tdaunif::sample_circle(n = 40L, sd = .05)
 p2 <- tdaunif::sample_circle(n = 20L, sd = .025) / 2
@@ -248,6 +278,10 @@ ggplot(df, aes(x, y)) +
 ## Introductory TDA
 
 :::{.fragment}
+* Create mesh of the data that approximates the true surface/structure we are sampling from
+:::
+
+:::{.fragment}
 * **Simplices:** Basic shapes like points, line segments, triangles, tetrahedra
 :::
 
@@ -255,47 +289,49 @@ ggplot(df, aes(x, y)) +
 * **Simplicial Complexes:** Collections of simplices "glued" together in a structured way
 :::
 
-## Simplices: Geometric Building Blocks {.smaller}
-
-* A **$k$-simplex** is the convex hull of $k+1$ geometrically independent points (vertices) $\{v_0, ..., v_k\}$.
-    * Notation: $[v_0, ..., v_k] = \bigl\{ \sum_{i=0}^k \alpha_i v_i : \sum_{i=0}^k \alpha_i = 1, \alpha_i \ge 0 \bigr\}$
-
-::: {.incremental}
-* **Examples:**
-    * 0-simplex: $[v_0]$ (a point/vertex)
-    * 1-simplex: $[v_0, v_1]$ (a line segment/edge)
-    * 2-simplex: $[v_0, v_1, v_2]$ (a triangle, including interior)
-    * 3-simplex: $[v_0, v_1, v_2, v_3]$ (a tetrahedron, including interior)
-:::
-
-:::{.fragment}
-* **Faces:** k-1 simplices spanned by subsets of the vertices. (e.g., edges of a triangle).
-:::
-
-:::{.notes}
-- $\alpha_i$ is weights/coefficients that sum to one, creates the hull/filled-in geometric object
-- The convex hull is the smallest convex set that encloses all the points, forming a convex polygon
-- "geometrically independent" means the points are affinely independent
-- ex 3 points, not collinear
-:::
 
 
-## Simplicial Complexes
+<!-- ## Simplices: Geometric Building Blocks {.smaller} -->
 
-A **Simplicial Complex** $S$ is a collection of simplices satisfying:
+<!-- * A **$k$-simplex** is the convex hull of $k+1$ geometrically independent points (vertices) $\{v_0, ..., v_k\}$. -->
+<!--     * Notation: $[v_0, ..., v_k] = \bigl\{ \sum_{i=0}^k \alpha_i v_i : \sum_{i=0}^k \alpha_i = 1, \alpha_i \ge 0 \bigr\}$ -->
 
-:::{.fragment}
-1.  **Face Inclusion:** If a simplex $\xi \in S$, then all faces of $\xi$ are also in $S$.
-:::
-:::{.incremental}
-2.  **Consistent Intersection:** The intersection of any two simplices $\xi_1, \xi_2 \in S$ is either:
-    * Empty ($\emptyset$), or
-    * Contained in $S$
-:::
+<!-- ::: {.incremental} -->
+<!-- * **Examples:** -->
+<!--     * 0-simplex: $[v_0]$ (a point/vertex) -->
+<!--     * 1-simplex: $[v_0, v_1]$ (a line segment/edge) -->
+<!--     * 2-simplex: $[v_0, v_1, v_2]$ (a triangle, including interior) -->
+<!--     * 3-simplex: $[v_0, v_1, v_2, v_3]$ (a tetrahedron, including interior) -->
+<!-- ::: -->
 
-:::{.fragment}
-* **Intuition**: A well-constructed mesh made of points, edges, triangles, etc.
-:::
+<!-- :::{.fragment} -->
+<!-- * **Faces:** k-1 simplices spanned by subsets of the vertices. (e.g., edges of a triangle). -->
+<!-- ::: -->
+
+<!-- :::{.notes} -->
+<!-- - $\alpha_i$ is weights/coefficients that sum to one, creates the hull/filled-in geometric object -->
+<!-- - The convex hull is the smallest convex set that encloses all the points, forming a convex polygon -->
+<!-- - "geometrically independent" means the points are affinely independent -->
+<!-- - ex 3 points, not collinear -->
+<!-- ::: -->
+
+
+<!-- ## Simplicial Complexes -->
+
+<!-- A **Simplicial Complex** $S$ is a collection of simplices satisfying: -->
+
+<!-- :::{.fragment} -->
+<!-- 1.  **Face Inclusion:** If a simplex $\xi \in S$, then all faces of $\xi$ are also in $S$. -->
+<!-- ::: -->
+<!-- :::{.incremental} -->
+<!-- 2.  **Consistent Intersection:** The intersection of any two simplices $\xi_1, \xi_2 \in S$ is either: -->
+<!--     * Empty ($\emptyset$), or -->
+<!--     * Contained in $S$ -->
+<!-- ::: -->
+
+<!-- :::{.fragment} -->
+<!-- * **Intuition**: A well-constructed mesh made of points, edges, triangles, etc. -->
+<!-- ::: -->
 
 
 ## Vietoris-Rips
@@ -321,7 +357,7 @@ A **Simplicial Complex** $S$ is a collection of simplices satisfying:
 
 ```{r ex_sc, fig.align='center', fig.dim=c(10,6)}
 
-radius <- .25
+radius <- .275
 
 prox <- 2 * radius
 
@@ -332,14 +368,14 @@ p_d <- ggplot(df, aes(x = x, y = y)) +
   theme_bw()
 
 plot1 <- ggplot(df, aes(x, y)) +
-  geom_simplicial_complex(radius = .25) +
+  geom_simplicial_complex(radius = .275) +
   coord_fixed()
 
 plot2 <- ggplot(df, aes(x, y)) +
   geom_simplicial_complex(
     mapping = aes(fill = after_stat(face)),
     dimension_max = 4L,
-    alpha = .25, radius = .25
+    alpha = .25, radius = .275
   ) +
   coord_fixed()
 
@@ -444,7 +480,6 @@ p_d + plot1
     * The feature disappears ( **d**ies) at filtration scale $d$.
 :::
 
-
 :::{.incremental}
 * **Persistence:** $d-b$ (how long the feature "persists"). Longer persistence often indicates significant features.
 * **Dimensions:**
@@ -510,9 +545,9 @@ digraph flowchart {
 
   A [label="Data"];
   // Added a line break (\n) to the long label
-  B [label="Filter Data\n Dimension Reduction "];
-  C [label=" Model as PPP "];
-  D [label=" Machine Learning \nClassification"];
+  B [label="Filter Data \n Persistence Diagrams"];
+  C [label=" Bayesian Marked\n Poisson Point Process "];
+  D [label=" Classification "];
 
   A -> B;
   B -> C;
@@ -520,48 +555,67 @@ digraph flowchart {
 }
 ```
 
-## Marked Poisson Point Processes {.smaller}
+## Marked Poisson Point Process {.smaller}
 
-:::{.incremental}
-- **Tilted Space:** Use $(b, d-b)$ instead of $(b, d)$, denoted $\mathbb{W}$. $\mathcal{D}$ denotes tilted PDs in $\mathbb{W}$.  
-- **Single Dimension Focus:** Analyze one homological dimension $k$, assuming independence across dimensions.
+:::{.fragment}
+- **Tilted Space:** Use $(b, d-b)$ instead of $(b, d)$, denoted $\mathbb{W}$. $\mathcal{D}$ denotes tilted PDs in $\mathbb{W}$.
+- **Single Dimension:** Analyze one homological dimension $k$ at a time, assuming independence across dimensions.
 :::
 
-:::{.incremental}
-- **Poisson Point Process (PPP)**: A random collection of points in a space $\mathbb{X}$, defined by an **intensity measure** $\Lambda$. 
-- **Number of Points:** The total count $N$ follows a Poisson distribution, $N \sim \text{Poisson}(\mu = \Lambda(\mathbb{X})).$  
-- **Point Locations:** Given $N = n$, the positions of the $n$ points are independently sampled from the **normalized intensity measure** $\Lambda / \mu$.  
-  - If $\Lambda$ has a density $\lambda(x)$, the points are sampled as: $x_1, \dots, x_n \sim \frac{\lambda(x)}{\mu}.$  
-  - The expected number of points in any region $A \subseteq \mathbb{X}$ is $\mathbb{E}[|\Pi \cap A|] = \Lambda(A).$  
+:::{.fragment}
+- **Poisson Point Process** $\Pi$:
+    * **Cardinality ($N$):** The number of points $N \sim \text{Poisson}(\mu = \Lambda(\mathbb{X}))$.
+    * **Spatial Distribution ($\mathbb{P}_n$):** Given $N=n$ points, their locations are drawn **independently** from the normalized intensity measure $\frac{\Lambda(\cdot)}{\mu}$.
+    * For $A \subseteq \mathbb{X}$ , $\mathbb{E}[|\Pi \cap A|] = \Lambda(A)$ 
 :::
 
-:::{.incremental}
-- **Marked PPP:** Points $x \in \mathbb{X}$ with marks $m \in \mathbb{M}$, defined on $\mathbb{X} \times \mathbb{M}$.  
-    - Base PPP on $\mathbb{X}$ with intensity $\Lambda$.  
-    - Stochastic kernel $\ell(x, \cdot)$: Defines mark distribution conditional on location $x$.  
-  - **Independence:** Marks $\{m_i\}$ are conditionally independent given locations $\{x_i\}$.  
+:::{.fragment}
+- **Marked PPP**: Points in $\mathbb{X}$ with marks in $\mathbb{M}$, defined by:  
+  - Base PPP on $\mathbb{X}$ with intensity $\Lambda$, and marks via kernel $\ell(x, \cdot)$ (conditionally independent given locations).
 :::
 
-:::{.notes}
-**Setting the Stage: Representation & Goal**  
-- **Tilted Space ($\mathbb{W}$):** The coordinate transformation $(b, d) \rightarrow (b, p = d - b)$ isn’t just a convenience—it’s a strategic choice to focus on **persistence** $p$, which captures the "lifetime" of topological features. This simplifies modeling by decoupling birth times from death times, making patterns in persistence more interpretable.  
-- **Model M1 (Single Dimension Focus):** Assuming independence across homological dimensions ($H_0, H_1, \dots$) is a critical simplification. It lets us isolate and analyze features in one dimension at a time, avoiding the complexity of joint dependencies. This assumption is foundational for building scalable inference methods.  
-- **Notation Clarification:** The notation abuse ($\mathcal{D}_X$ instead of $\mathcal{D}^k_X$) is intentional to streamline the framework. It reflects that all operations are implicitly tied to a fixed dimension $k$, which is consistent with the paper’s approach.  
-- **Bayesian Goal Context:** While not explicitly stated in this slide, the ultimate aim of building a Bayesian framework is to **infer latent PDs** ($\mathcal{D}_X$) from observed data ($\mathcal{D}_Y$) by leveraging PPPs. This ties the representation and assumptions to a broader inference strategy.  
+<!-- ## Marked Poisson Point Processes {.smaller} -->
 
-**The Poisson Point Process (PPP)**  
-- **Why PPPs for PDs?** Persistence diagrams are inherently random: they vary with data and contain a variable number of points. A PPP naturally models this by allowing **random counts** (via Poisson distribution) and **flexible spatial distributions** (via intensity $\Lambda$).  
-- **Intensity Measure ($\Lambda$) as a Core Tool:** The intensity $\Lambda(A)$ isn’t just a mathematical abstraction—it’s the **expected number of points** in region $A$. This intuitive link between measure theory and practical modeling makes PPPs ideal for PD analysis.  
-- **Normalization Trick:** The spatial distribution given $N = n$ is $\Lambda / \mu$, where $\mu = \Lambda(\mathbb{X})$. This ensures that the conditional distribution is valid (probabilities sum to 1) while preserving the structure of $\Lambda$.  
-- **PPP vs. Fixed Datasets:** Unlike a fixed dataset, a PPP’s realization is random in both count and location. For PDs, this aligns with the idea that topological features are **stochastic**—they vary across datasets and need probabilistic modeling.  
+<!-- :::{.incremental} -->
+<!-- - **Tilted Space:** Use $(b, d-b)$ instead of $(b, d)$, denoted $\mathbb{W}$. $\mathcal{D}$ denotes tilted PDs in $\mathbb{W}$.   -->
+<!-- - **Single Dimension Focus:** Analyze one homological dimension $k$, assuming independence across dimensions. -->
+<!-- ::: -->
 
-**Marked Poisson Point Processes**  
-- **Marks as Feature Attributes:** Marks ($m \in \mathbb{M}$) could encode properties like feature **significance**, **type** (e.g., "hole" vs. "component"), or **noise status**. This extends the PPP framework to model richer data, where locations and attributes are jointly random.  
-- **Stochastic Kernel ($\ell$) as a Conditional Model:** The kernel $\ell(x, \cdot)$ defines how marks depend on location $x$. For example, in PDs, a point near the diagonal ($b \approx d$) might have a mark indicating "short-lived" features, while one far from the diagonal has a mark for "persistent."  
-- **Conditional Independence in Marks:** Once locations are fixed, marks are independent. This simplifies inference and allows for modular modeling: you can first infer locations (using the base PPP) and then analyze marks separately.  
-- **Bridge to Bayesian Inference:** The marked PPP structure is essential for the later Bayesian framework. Observed marks (e.g., feature properties) can inform updates to the latent PD ($\mathcal{D}_X$), making it a natural setting for likelihood-based inference.  
+<!-- :::{.incremental} -->
+<!-- - **Poisson Point Process (PPP)**: A random collection of points in a space $\mathbb{X}$, defined by an **intensity measure** $\Lambda$. -->
+<!-- - **Number of Points:** The total count $N$ follows a Poisson distribution, $N \sim \text{Poisson}(\mu = \Lambda(\mathbb{X})).$ -->
+<!-- - **Point Locations:** Given $N = n$, the positions of the $n$ points are independently sampled from the **normalized intensity measure** $\Lambda / \mu$. -->
+<!--   - If $\Lambda$ has a density $\lambda(x)$, the points are sampled as: $x_1, \dots, x_n \sim \frac{\lambda(x)}{\mu}.$ -->
+<!--   - The expected number of points in any region $A \subseteq \mathbb{X}$ is $\mathbb{E}[|\Pi \cap A|] = \Lambda(A).$ -->
+<!-- ::: -->
 
-:::
+<!-- :::{.incremental} -->
+<!-- - **Marked PPP:** Points $x \in \mathbb{X}$ with marks $m \in \mathbb{M}$, defined on $\mathbb{X} \times \mathbb{M}$. -->
+<!--     - Base PPP on $\mathbb{X}$ with intensity $\Lambda$. -->
+<!--     - Stochastic kernel $\ell(x, \cdot)$: Defines mark distribution conditional on location $x$. -->
+<!--   - **Independence:** Marks $\{m_i\}$ are conditionally independent given locations $\{x_i\}$. -->
+<!-- ::: -->
+
+<!-- :::{.notes} -->
+<!-- **Setting the Stage: Representation & Goal**   -->
+<!-- - **Tilted Space ($\mathbb{W}$):** The coordinate transformation $(b, d) \rightarrow (b, p = d - b)$ isn’t just a convenience—it’s a strategic choice to focus on **persistence** $p$, which captures the "lifetime" of topological features. This simplifies modeling by decoupling birth times from death times, making patterns in persistence more interpretable.   -->
+<!-- - **Model M1 (Single Dimension Focus):** Assuming independence across homological dimensions ($H_0, H_1, \dots$) is a critical simplification. It lets us isolate and analyze features in one dimension at a time, avoiding the complexity of joint dependencies. This assumption is foundational for building scalable inference methods.   -->
+<!-- - **Notation Clarification:** The notation abuse ($\mathcal{D}_X$ instead of $\mathcal{D}^k_X$) is intentional to streamline the framework. It reflects that all operations are implicitly tied to a fixed dimension $k$, which is consistent with the paper’s approach.   -->
+<!-- - **Bayesian Goal Context:** While not explicitly stated in this slide, the ultimate aim of building a Bayesian framework is to **infer latent PDs** ($\mathcal{D}_X$) from observed data ($\mathcal{D}_Y$) by leveraging PPPs. This ties the representation and assumptions to a broader inference strategy.   -->
+
+<!-- **The Poisson Point Process (PPP)**   -->
+<!-- - **Why PPPs for PDs?** Persistence diagrams are inherently random: they vary with data and contain a variable number of points. A PPP naturally models this by allowing **random counts** (via Poisson distribution) and **flexible spatial distributions** (via intensity $\Lambda$).   -->
+<!-- - **Intensity Measure ($\Lambda$) as a Core Tool:** The intensity $\Lambda(A)$ isn’t just a mathematical abstraction—it’s the **expected number of points** in region $A$. This intuitive link between measure theory and practical modeling makes PPPs ideal for PD analysis.   -->
+<!-- - **Normalization Trick:** The spatial distribution given $N = n$ is $\Lambda / \mu$, where $\mu = \Lambda(\mathbb{X})$. This ensures that the conditional distribution is valid (probabilities sum to 1) while preserving the structure of $\Lambda$.   -->
+<!-- - **PPP vs. Fixed Datasets:** Unlike a fixed dataset, a PPP’s realization is random in both count and location. For PDs, this aligns with the idea that topological features are **stochastic**—they vary across datasets and need probabilistic modeling.   -->
+
+<!-- **Marked Poisson Point Processes**   -->
+<!-- - **Marks as Feature Attributes:** Marks ($m \in \mathbb{M}$) could encode properties like feature **significance**, **type** (e.g., "hole" vs. "component"), or **noise status**. This extends the PPP framework to model richer data, where locations and attributes are jointly random.   -->
+<!-- - **Stochastic Kernel ($\ell$) as a Conditional Model:** The kernel $\ell(x, \cdot)$ defines how marks depend on location $x$. For example, in PDs, a point near the diagonal ($b \approx d$) might have a mark indicating "short-lived" features, while one far from the diagonal has a mark for "persistent."   -->
+<!-- - **Conditional Independence in Marks:** Once locations are fixed, marks are independent. This simplifies inference and allows for modular modeling: you can first infer locations (using the base PPP) and then analyze marks separately.   -->
+<!-- - **Bridge to Bayesian Inference:** The marked PPP structure is essential for the later Bayesian framework. Observed marks (e.g., feature properties) can inform updates to the latent PD ($\mathcal{D}_X$), making it a natural setting for likelihood-based inference.   -->
+
+<!-- ::: -->
 
 ## Bayesian Framework: Analogy
 
@@ -571,9 +625,9 @@ digraph flowchart {
 | **Likelihood** | Depends on observed data          | Stochastic kernel $\color{purple}{\ell(y|x)}$ depends on observed PDs |
 | **Posterior** | Compute the posterior density     | Defines a Poisson PP with posterior intensity               |
 
-:::{.fragment}
-* **Core Idea:** Treat unknown, latent PD $\mathcal{D}^X$ as random draw from PPP defined by *prior* intensity $\lambda_{\mathcal{D}^X}$. Use observed PDs $D_{Y^1}, ..., D_{Y^m}$ (for fixed $k$) and likelihood kernel $\color{purple}{\ell(y|x)}$ to get *posterior* intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}}$.
-:::
+<!-- :::{.fragment} -->
+<!-- * **Core Idea:** Treat unknown, latent PD $\mathcal{D}^X$ as random draw from PPP defined by *prior* intensity $\lambda_{\mathcal{D}^X}$. Use observed PDs $D_{Y^1}, ..., D_{Y^m}$ (for fixed $k$) and likelihood kernel $\color{purple}{\ell(y|x)}$ to get *posterior* intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}}$. -->
+<!-- ::: -->
 
 ::: {.notes}
 **Speaker Notes:**
@@ -591,57 +645,57 @@ digraph flowchart {
 * **Core Idea Summary:** We model the unknown true PD (for dimension $k$) as a PPP realization governed by a prior intensity $\lambda$. We use the actual points from observed diagrams ($D_{Y^1}, \dots, D_{Y^m}$, all for dim $k$) and a kernel $\color{purple}{\ell(y|x)}$ (our likelihood) to compute a posterior intensity. This posterior intensity defines the PPP representing our updated understanding of the true PD structure.
 :::
 
-## The Model: Latent PD $\mathcal{D}_X$ {.smaller}
+<!-- ## The Model: Latent PD $\mathcal{D}_X$ {.smaller} -->
 
-* The "true" underlying PD $\mathcal{D}_X$ is modeled as a **Poisson Point Process (PPP)** with a **prior intensity density** $\lambda_{\mathcal{D}_X}(x)$.
+<!-- * The "true" underlying PD $\mathcal{D}_X$ is modeled as a **Poisson Point Process (PPP)** with a **prior intensity density** $\lambda_{\mathcal{D}_X}(x)$. -->
 
-::: {.incremental}
-* Any potential feature $x$ from the prior might be **observable** or **vanish** (unobserved).
-    * $\alpha(x)$: Probability that feature $x$ is potentially observable.
-* $\mathcal{D}_X$ is decomposed into two *independent* PPPs:
-    * $\mathcal{D}_{XO}$ (**O**bserved Track): Points that *could* generate an observation.
-        * Intensity: $\color{blue}{\alpha(x) \lambda_{\mathcal{D}_X}(x)}$
-    * $\mathcal{D}_{XV}$ (**V**anished Track): Points that are missed / not observed.
-        * Intensity: $\color{red}{(1-\alpha(x)) \lambda_{\mathcal{D}_X}(x)}$
-:::
+<!-- ::: {.incremental} -->
+<!-- * Any potential feature $x$ from the prior might be **observable** or **vanish** (unobserved). -->
+<!--     * $\alpha(x)$: Probability that feature $x$ is potentially observable. -->
+<!-- * $\mathcal{D}_X$ is decomposed into two *independent* PPPs: -->
+<!--     * $\mathcal{D}_{XO}$ (**O**bserved Track): Points that *could* generate an observation. -->
+<!--         * Intensity: $\color{blue}{\alpha(x) \lambda_{\mathcal{D}_X}(x)}$ -->
+<!--     * $\mathcal{D}_{XV}$ (**V**anished Track): Points that are missed / not observed. -->
+<!--         * Intensity: $\color{red}{(1-\alpha(x)) \lambda_{\mathcal{D}_X}(x)}$ -->
+<!-- ::: -->
 
-::: {.notes}
-* This slide describes Model M2, which defines our prior belief about the **latent ("true") persistence diagram**, $\mathcal{D}^X$.
-* **Remember the Context (M1):** We are operating under Model M1, meaning we've fixed a specific **homological dimension $k$**. So, $\mathcal{D}_X$ here is technically $\mathcal{D}^k_X$, representing the true features only for that dimension $k$.
-* **Prior Model:** We model this latent $\mathcal{D}_X$ as a **Poisson Point Process (PPP)** on the persistence plane $\mathbb{W}$. The behavior of this PPP is governed by its **prior intensity density** $\lambda_{\mathcal{D}_X}(x)$ (really $\lambda_{\mathcal{D}^k_X}(x)$). This function reflects our prior assumptions about the density of true dimension-$k$ features at location $x=(b, p)$.
-* **Detectability** $\alpha(x)$: We acknowledge that not all true features might be detectable in real data. We introduce $\alpha(x)$, the probability that a true feature at location $x$ is *potentially observable*. Conversely, $1-\alpha(x)$ is the probability that it *vanishes* (is missed entirely, perhaps due to low persistence, noise, or sampling issues). $\alpha(x)$ models feature detectability.
-* **Decomposition:** Using $\alpha(x)$, we can think of the original latent process $\mathcal{D}^X$ as being composed of two independent PPPs (this is a standard PPP property called "thinning"):
-    * $\mathcal{D}_{XO}$ **(Observable Track):** The subset of latent features that *could* potentially generate an observation in our data. Its intensity is the prior intensity modulated by the probability of being observable: $\color{blue}{\alpha(x) \lambda_{\mathcal{D}_X}(x)}$. This is the "signal" part of our prior that can interact with data (related to the `blue` term in the theorem's denominator).
-    * $\mathcal{D}^{XV}$ **(Vanished Track):** The subset of latent features that are fundamentally unobservable. Its intensity is modulated by the probability of vanishing: $\color{red}{(1-\alpha(x)) \lambda_{\mathcal{D}_X}(x)}$. This part of our prior belief cannot be updated by observations (this is the `red` term in the theorem).
-* **Consistency:** Note that the intensities sum correctly: $\color{blue}{\alpha(x)\lambda_{\mathcal{D}_X}(x)} + \color{red}{(1-\alpha(x))\lambda_{\mathcal{D}_X}(x)} = \lambda_{\mathcal{D}_X}(x)$, recovering the total prior intensity.
-:::
+<!-- ::: {.notes} -->
+<!-- * This slide describes Model M2, which defines our prior belief about the **latent ("true") persistence diagram**, $\mathcal{D}^X$. -->
+<!-- * **Remember the Context (M1):** We are operating under Model M1, meaning we've fixed a specific **homological dimension $k$**. So, $\mathcal{D}_X$ here is technically $\mathcal{D}^k_X$, representing the true features only for that dimension $k$. -->
+<!-- * **Prior Model:** We model this latent $\mathcal{D}_X$ as a **Poisson Point Process (PPP)** on the persistence plane $\mathbb{W}$. The behavior of this PPP is governed by its **prior intensity density** $\lambda_{\mathcal{D}_X}(x)$ (really $\lambda_{\mathcal{D}^k_X}(x)$). This function reflects our prior assumptions about the density of true dimension-$k$ features at location $x=(b, p)$. -->
+<!-- * **Detectability** $\alpha(x)$: We acknowledge that not all true features might be detectable in real data. We introduce $\alpha(x)$, the probability that a true feature at location $x$ is *potentially observable*. Conversely, $1-\alpha(x)$ is the probability that it *vanishes* (is missed entirely, perhaps due to low persistence, noise, or sampling issues). $\alpha(x)$ models feature detectability. -->
+<!-- * **Decomposition:** Using $\alpha(x)$, we can think of the original latent process $\mathcal{D}^X$ as being composed of two independent PPPs (this is a standard PPP property called "thinning"): -->
+<!--     * $\mathcal{D}_{XO}$ **(Observable Track):** The subset of latent features that *could* potentially generate an observation in our data. Its intensity is the prior intensity modulated by the probability of being observable: $\color{blue}{\alpha(x) \lambda_{\mathcal{D}_X}(x)}$. This is the "signal" part of our prior that can interact with data (related to the `blue` term in the theorem's denominator). -->
+<!--     * $\mathcal{D}^{XV}$ **(Vanished Track):** The subset of latent features that are fundamentally unobservable. Its intensity is modulated by the probability of vanishing: $\color{red}{(1-\alpha(x)) \lambda_{\mathcal{D}_X}(x)}$. This part of our prior belief cannot be updated by observations (this is the `red` term in the theorem). -->
+<!-- * **Consistency:** Note that the intensities sum correctly: $\color{blue}{\alpha(x)\lambda_{\mathcal{D}_X}(x)} + \color{red}{(1-\alpha(x))\lambda_{\mathcal{D}_X}(x)} = \lambda_{\mathcal{D}_X}(x)$, recovering the total prior intensity. -->
+<!-- ::: -->
 
-## The Model: Observed PD $\mathcal{D}_Y$ {.smaller}
+<!-- ## The Model: Observed PD $\mathcal{D}_Y$ {.smaller} -->
 
-* An *observed* PD $\mathcal{D}_Y$ is also decomposed into two *independent* components:
+<!-- * An *observed* PD $\mathcal{D}_Y$ is also decomposed into two *independent* components: -->
 
-::: {.incremental}
-* $\mathcal{D}_{YO}$ (**O**bserved from Signal): Points generated *from* the latent observable points $\mathcal{D}_{XO}$.
-    * The pair $(\mathcal{D}_{XO}, \mathcal{D}_{YO})$ forms a **Marked PPP**.
-    * Connection is via the **stochastic kernel** $\color{purple}{\ell(y|x)}$ (the "likelihood"). It gives the probability density of observing $y \in \mathcal{D}_{YO}$ given a latent point $x \in \mathcal{D}_{XO}$.
-* $\mathcal{D}_{YS}$ (**S**purious / Noise): Points arising independently from noise, clutter, or unanticipated geometry.
-    * Modeled as an independent PPP with intensity $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$.
-:::
+<!-- ::: {.incremental} -->
+<!-- * $\mathcal{D}_{YO}$ (**O**bserved from Signal): Points generated *from* the latent observable points $\mathcal{D}_{XO}$. -->
+<!--     * The pair $(\mathcal{D}_{XO}, \mathcal{D}_{YO})$ forms a **Marked PPP**. -->
+<!--     * Connection is via the **stochastic kernel** $\color{purple}{\ell(y|x)}$ (the "likelihood"). It gives the probability density of observing $y \in \mathcal{D}_{YO}$ given a latent point $x \in \mathcal{D}_{XO}$. -->
+<!-- * $\mathcal{D}_{YS}$ (**S**purious / Noise): Points arising independently from noise, clutter, or unanticipated geometry. -->
+<!--     * Modeled as an independent PPP with intensity $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$. -->
+<!-- ::: -->
 
-::: {.notes}
-* Now we turn to Model M3, which describes the structure of the **observed persistence diagrams** $\mathcal{D}_Y$.
-* **Context:** Again, this is for our **fixed dimension** $k$. So $\mathcal{D}_Y$ means $\mathcal{D}^k_Y$. Crucially, $\mathcal{D}_Y$ represents the *random process* that generates the actual diagrams $D_{Y^1}, \dots, D_{Y^m}$ which we compute from our data. M3 models the underlying mechanism producing these diagrams.
-* **Decomposition:** The model assumes that any observed diagram (a realization of $\mathcal{D}_Y$) is composed of points from two independent sources:
-    * 1. $\mathcal{D}_{YO}$ **(Observed from Signal):** These are the points in the observed diagram that correspond to the "true", potentially observable latent features we defined in M2 (the points in $\mathcal{D}_{XO}$).
-        * **Marked PPP:** The link between the latent signal $\mathcal{D}_{XO}$ and the observed signal $\mathcal{D}_{YO}$ is modeled as a **Marked Poisson Point Process**. Think of it this way: nature selects a latent feature $x$ to be potentially observable (it's in $\mathcal{D}_{XO}$). Then, the observation process generates a corresponding observed feature $y$ (which becomes a point in $\mathcal{D}_{YO}$) according to some probability distribution. The observed point $y$ is the "mark" associated with the latent point $x$.
-        * **Stochastic Kernel** $\color{purple}{\ell(y|x)}$: This kernel defines the probability density of the mark $y$ given the original latent point $x$. This $\color{purple}{\ell(y|x)}$ acts as our **likelihood function** (the `purple` term in the theorem). It models how the process of generating data and computing the PD might shift or perturb a true feature's location from $x$ to $y$.
-    * 2. $\mathcal{D}_{YS}$ **(Spurious / Noise):** These are points appearing in the observed diagram that do *not* originate from any true latent feature in $\mathcal{D}_X$. They arise independently from sources like measurement noise, computational artifacts, sampling variations, or other unmodeled aspects.
-        * This noise component is modeled as an independent **PPP** governed by its own intensity function $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$. This intensity describes the expected spatial density of purely spurious points appearing near $y$ in an observed diagram. It's our background noise model for dimension $k$ (the `darkgreen` term in the theorem).
-* **Interpretation:** According to M3, any specific point $y$ that we see in one of our actual computed diagrams (say, $D_{Y^i}$) could have either been generated by some latent feature $x$ (via $\color{purple}{\ell(y|x)}$) or it could be purely noise (generated according to $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$). The Bayesian theorem will weigh these possibilities.
-* *(Refer to Figure 4 if available):* Figure 4 visually summarizes these relationships: $\mathcal{D}_X$ (latent) splits into $\mathcal{D}_{XO}$ (latent signal) and $\mathcal{D}_{XV}$ (latent vanished). $\mathcal{D}_Y$ (observed process) splits into $\mathcal{D}_{YO}$ (observed signal) and $\mathcal{D}_{YS}$ (observed noise). Only $\mathcal{D}_{XO}$ and $\mathcal{D}_{YO}$ are directly linked via the likelihood kernel $\color{purple}{\ell(y|x)}$.
-:::
+<!-- ::: {.notes} -->
+<!-- * Now we turn to Model M3, which describes the structure of the **observed persistence diagrams** $\mathcal{D}_Y$. -->
+<!-- * **Context:** Again, this is for our **fixed dimension** $k$. So $\mathcal{D}_Y$ means $\mathcal{D}^k_Y$. Crucially, $\mathcal{D}_Y$ represents the *random process* that generates the actual diagrams $D_{Y^1}, \dots, D_{Y^m}$ which we compute from our data. M3 models the underlying mechanism producing these diagrams. -->
+<!-- * **Decomposition:** The model assumes that any observed diagram (a realization of $\mathcal{D}_Y$) is composed of points from two independent sources: -->
+<!--     * 1. $\mathcal{D}_{YO}$ **(Observed from Signal):** These are the points in the observed diagram that correspond to the "true", potentially observable latent features we defined in M2 (the points in $\mathcal{D}_{XO}$). -->
+<!--         * **Marked PPP:** The link between the latent signal $\mathcal{D}_{XO}$ and the observed signal $\mathcal{D}_{YO}$ is modeled as a **Marked Poisson Point Process**. Think of it this way: nature selects a latent feature $x$ to be potentially observable (it's in $\mathcal{D}_{XO}$). Then, the observation process generates a corresponding observed feature $y$ (which becomes a point in $\mathcal{D}_{YO}$) according to some probability distribution. The observed point $y$ is the "mark" associated with the latent point $x$. -->
+<!--         * **Stochastic Kernel** $\color{purple}{\ell(y|x)}$: This kernel defines the probability density of the mark $y$ given the original latent point $x$. This $\color{purple}{\ell(y|x)}$ acts as our **likelihood function** (the `purple` term in the theorem). It models how the process of generating data and computing the PD might shift or perturb a true feature's location from $x$ to $y$. -->
+<!--     * 2. $\mathcal{D}_{YS}$ **(Spurious / Noise):** These are points appearing in the observed diagram that do *not* originate from any true latent feature in $\mathcal{D}_X$. They arise independently from sources like measurement noise, computational artifacts, sampling variations, or other unmodeled aspects. -->
+<!--         * This noise component is modeled as an independent **PPP** governed by its own intensity function $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$. This intensity describes the expected spatial density of purely spurious points appearing near $y$ in an observed diagram. It's our background noise model for dimension $k$ (the `darkgreen` term in the theorem). -->
+<!-- * **Interpretation:** According to M3, any specific point $y$ that we see in one of our actual computed diagrams (say, $D_{Y^i}$) could have either been generated by some latent feature $x$ (via $\color{purple}{\ell(y|x)}$) or it could be purely noise (generated according to $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$). The Bayesian theorem will weigh these possibilities. -->
+<!-- * *(Refer to Figure 4 if available):* Figure 4 visually summarizes these relationships: $\mathcal{D}_X$ (latent) splits into $\mathcal{D}_{XO}$ (latent signal) and $\mathcal{D}_{XV}$ (latent vanished). $\mathcal{D}_Y$ (observed process) splits into $\mathcal{D}_{YO}$ (observed signal) and $\mathcal{D}_{YS}$ (observed noise). Only $\mathcal{D}_{XO}$ and $\mathcal{D}_{YO}$ are directly linked via the likelihood kernel $\color{purple}{\ell(y|x)}$. -->
+<!-- ::: -->
 
-## Bayes' Theorem for PDs
+## Bayes' Theorem for PDs {.smaller}
 
 * **Goal:** Find the **posterior intensity** $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x)$ for the latent PD $\mathcal{D}_X$, given $m$ independent observed PDs $D_{Y^1}, \dots, D_{Y^m}$.
 * Let $D_{Y^{1:m}} = \cup_{i=1}^m D_{Y^i}$. The posterior intensity is:
@@ -681,47 +735,140 @@ This formula gives the posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}
     * "Almost surely" is a standard term in probability theory meaning the equality holds *with probability 1*. It asserts that for any specific set of observations $D_{Y^{1:m}}$ you might get (excluding zero-probability outcomes), this formula correctly describes the posterior intensity.
 :::
 
+## Bayes PPP Example
 
-
-
-
-## Bottleneck & Wasserstein Distance {.smaller}
-
-For 2 Persistence Diagrams $X$ & $Y$:
-
-:::{.fragment}
-- **Bottleneck Distance**:  
-  Measures the maximum distance between matched points in persistence diagrams (PDs).  
-    - Sensitive to outliers (dominated by the largest mismatch).  
-    
-  $$
-  W_\infty(X,Y) = \inf_\limits{\eta: X \rightarrow{} Y} \sup_\limits{x \in X} \|x - \eta(x)\|_\infty
-  $$
+```{r bayes_ppp_ex, fig.dim=c(10,6)}
+#|cache: true
+generate_pd <- function(n_points = 100, noise_variance, seed) {
+  set.seed(seed)
+  theta <- runif(n_points, 0, 2 * pi)
+  point_cloud_tbl <- tibble(x = cos(theta), y = sin(theta)) |>
+    mutate(
+      x = x + rnorm(n(), 0, sqrt(noise_variance)),
+      y = y + rnorm(n(), 0, sqrt(noise_variance))
+    )
+  homology_res <- TDAstats::calculate_homology(
+    as.matrix(point_cloud_tbl), dim = 1, threshold = 2
+  )
   
+  as_tibble(homology_res) |>
+    filter(dimension == 1, is.finite(death)) |>
+    mutate(persistence = death - birth) |>
+    select(dimension, birth, persistence)
+}
 
-:::
+calculate_prior_data <- function(grid_points, prior_params) {
+  intensity_values <- apply(grid_points, 1, function(p) {
+    if (p["persistence"] < 0) return(0)
+    BayesTDA::Wedge_Gaussian_Mixture(
+      x = as.numeric(p),
+      weights = prior_params$weights,
+      means = prior_params$means,
+      sigmas = prior_params$sigmas
+    )
+  })
+  intensity_values[!is.finite(intensity_values)] <- 0
+  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
+}
 
-:::{.fragment}
-- **Wasserstein Distance**:  
-  Measures the "work" required to transform one PD into another.  
-    - Robust to outliers (aggregates all mismatches).  
+calculate_posterior_data <- function(grid_points, observed_pd, prior_params, noise_sigma, alpha, sigma_y) {
+  Dy_list <- split(observed_pd |> select(birth, persistence) |> as.matrix(), 1:nrow(observed_pd))
+  noise_params <- list(weights = 1, means = list(c(0.5, 0)), sigmas = noise_sigma)
+  
+  intensity_values <- apply(grid_points, 1, function(p) {
+    if (p["persistence"] < 0) return(0)
+    BayesTDA::postIntensityPoisson(
+      x = as.numeric(p), Dy = Dy_list, alpha = alpha,
+      weight.prior = prior_params$weights, mean.prior = prior_params$means,
+      sigma.prior = prior_params$sigmas, sigma.y = sigma_y,
+      weights.unexpected = noise_params$weights, mean.unexpected = noise_params$means,
+      sigma.unexpected = noise_params$sigmas
+    )
+  })
+  intensity_values[!is.finite(intensity_values)] <- 0
+  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
+}
 
-$$
-W_q(X,Y) = \left[ \inf_\limits{\eta: X \rightarrow{} Y} \sum_\limits{x \in X} \|x - \eta(x)\|^p_\infty \right]^{1/p}
-$$
+plot_intensity <- function(data, observed = NULL, title = "") {
+  p <- ggplot(data, aes(x = birth, y = persistence)) +
+    geom_raster(aes(fill = intensity), interpolate = TRUE) +
+    scale_fill_viridis_c(option = "plasma", name = "Intensity", limits = c(0, 1)) +
+    coord_cartesian(xlim = c(0, 2.5), ylim = c(0, 2.5), expand = FALSE) +
+    labs(x = "birth", y = "persistence", title = title) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5))
+    
+  if (!is.null(observed)) {
+    p <- p + geom_point(data = observed, color = "chartreuse3", size = 2.5, shape = 16)
+  }
+  p
+}
 
-:::
+observed_pd <- generate_pd(noise_variance = 0.001, seed = 123)
 
-:::{.notes}
-- $\eta$ is a bijection
-- $L_\infty = \max{\{|x_1-y_1|, |x_2 - y_2|, \ldots \}}$
-- **Bottleneck**: Useful for detecting *critical* topological features (e.g., a single hole vs. no holes).  
-    - supremum of distances between corresponding points for each. THen infimum over all bijections.
-- **Wasserstein**: Better for *global* comparisons (e.g., distributions of holes in similar shapes).
-    - sum of qth powers of the $L_\infty$ distances, and again, minimizing over the bijections
-- Bottleneck is Wasserstein as $q \rightarrow{} \infty$
-- For each PD, we are adding infinite points along diagonal
-:::
+eval_grid <- expand_grid(
+  birth = seq(0, 2.5, length.out = 100),
+  persistence = seq(0, 2.5, length.out = 100)
+)
+prior_inf_params <- list(means = list(c(0.5, 1.2)), sigmas = c(.01), weights = c(1))
+prior_uni_params <- list(means = list(c(1, 1)), sigmas = c(1), weights = c(1))
+
+prior_inf_data <- calculate_prior_data(eval_grid, prior_inf_params)
+prior_uni_data <- calculate_prior_data(eval_grid, prior_uni_params)
+
+posterior_inf_data <- calculate_posterior_data(
+  eval_grid, observed_pd, prior_inf_params,
+  noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
+)
+posterior_uni_data <- calculate_posterior_data(
+  eval_grid, observed_pd, prior_uni_params,
+  noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
+)
+
+p_prior_inf <- plot_intensity(prior_inf_data, title = "Informative Prior")
+p_prior_uni <- plot_intensity(prior_uni_data, title = "Uniform Prior")
+p_post_inf <- plot_intensity(posterior_inf_data, observed = observed_pd, title = "Posterior (Informative)")
+p_post_uni <- plot_intensity(posterior_uni_data, observed = observed_pd, title = "Posterior (Uniform)")
+
+(p_prior_inf | p_prior_uni) / (p_post_inf | p_post_uni) +
+  plot_layout(guides = "collect")
+```
+
+<!-- ## Bottleneck & Wasserstein Distance {.smaller} -->
+
+<!-- For 2 Persistence Diagrams $X$ & $Y$: -->
+
+<!-- :::{.fragment} -->
+<!-- - **Bottleneck Distance**:   -->
+<!--   Measures the maximum distance between matched points in persistence diagrams (PDs).   -->
+<!--     - Sensitive to outliers (dominated by the largest mismatch).   -->
+
+<!--   $$ -->
+<!--   W_\infty(X,Y) = \inf_\limits{\eta: X \rightarrow{} Y} \sup_\limits{x \in X} \|x - \eta(x)\|_\infty -->
+<!--   $$ -->
+<!-- ::: -->
+
+<!-- :::{.fragment} -->
+<!-- - **Wasserstein Distance**:   -->
+<!--   Measures the "work" required to transform one PD into another.   -->
+<!--     - Robust to outliers (aggregates all mismatches).   -->
+
+<!-- $$ -->
+<!-- W_q(X,Y) = \left[ \inf_\limits{\eta: X \rightarrow{} Y} \sum_\limits{x \in X} \|x - \eta(x)\|^p_\infty \right]^{1/p} -->
+<!-- $$ -->
+
+<!-- ::: -->
+
+<!-- :::{.notes} -->
+<!-- - $\eta$ is a bijection -->
+<!-- - $L_\infty = \max{\{|x_1-y_1|, |x_2 - y_2|, \ldots \}}$ -->
+<!-- - **Bottleneck**: Useful for detecting *critical* topological features (e.g., a single hole vs. no holes).   -->
+<!--     - supremum of distances between corresponding points for each. THen infimum over all bijections. -->
+<!-- - **Wasserstein**: Better for *global* comparisons (e.g., distributions of holes in similar shapes). -->
+<!--     - sum of qth powers of the $L_\infty$ distances, and again, minimizing over the bijections -->
+<!-- - Bottleneck is Wasserstein as $q \rightarrow{} \infty$ -->
+<!-- - For each PD, we are adding infinite points along diagonal -->
+<!-- ::: -->
 
 ## Bottleneck & Wasserstein Distance
 
@@ -765,15 +912,7 @@ $\color{green}{\text{For dimension 1, loops/hole of circle}}$
 
 ## Cubical Complexes
 
-## Previous TDA Work
 
-:::{.fragment}
-* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
-* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
-* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
-* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@doi:10.1073/pnas.1102826108]
-* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
-:::
 
 # Analysis {#sec-Analysis}
 

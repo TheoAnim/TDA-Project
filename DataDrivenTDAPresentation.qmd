@@ -86,6 +86,9 @@ library(mvtnorm)
 library(kableExtra)
 library(plotly)
 library(DiagrammeR)
+library(transport)
+library(TDA)
+library(RColorBrewer)
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
@@ -124,9 +127,33 @@ $$
 
 # MNIST Overview {#sec-MNIST}
 
-## Data Overview
+## Historical Development
 
-## Example digit
+:::{.incremental}
+- **1988**: Creation of the **USPS database** (16×16 grayscale images of handwritten zip codes) for training the 1989 LeNet neural network.
+- **Late 1980s**: National Institute of Standards and Technology's (NIST) **Special Databases** developed for Optical Character Recognition(OCR) research, derived from census forms and high-school student samples.
+  - **SD-7** (1992): Test set of 58,646 images from 500 high-school students, later used in MNIST.
+- **1992**: NIST/Census Bureau competition highlighted challenges in adapting models across datasets.
+- **1994**: **MNIST** created, addressing biases in original NIST data
+:::
+
+## Organizational Structure
+
+:::{.incremental}
+- **Data Composition**:
+  - **Training set**: 60,000 images (50% SD-3, 50% SD-7).
+  - **Test set**: 10,000 images (originally 60,000, later reduced to 10k).
+- **Image Processing**:
+  - Resized to **28x28 pixels** with anti-aliasing.
+  - Normalized to center of mass alignment.
+- **Version Evolution**:
+  - **QMNIST** (2019): Restored full 60k test set.
+  - **EMNIST** (2017): Extended to include letters and digits.
+  - **Fashion MNIST** (2017): Challenging alternative with fashion items.
+:::
+
+
+## Example digit {.smaller}
 
 ```{r}
 # mnist <- dslabs::read_mnist()
@@ -175,13 +202,17 @@ plot_digit <- \(image_list = train_images_list, image_index = NULL, image_df = N
 }
 
 plot_digit(image_index = 8)
-train$labels[8]
+paste0("Label: ", train$labels[8])
 ```
+
+:::{.fragment}
+-   Each pixel is given a gray-scale number ranging from 0 (white background) to 255 (black background)
+-   We will binarize this to 0 and 1, changing it from gray-scale to black and white
+:::
 
 ## Binarization
 
-
-```{r}
+```{r, fig.dim=c(10,6)}
 binarize_images <- function(images_list, threshold = 0.5) {
   lapply(images_list, function(mat) {
     ifelse(mat < threshold, 0, 1)
@@ -194,26 +225,80 @@ plot_digit(image_index = 8) + plot_digit(train_images_binarized, image_index = 8
 
 ```
 
+
+
+:::{.notes}
+Binary filtration straight to persistence diagram, the images are cubical complexes
+:::
+
+## Project Objective
+
+::: {.fragment}
+**Goal:** Classify handwritten digits (pixel arrays) into their correct numerical labels.
+:::
+
+:::::: {.fragment}
+::::: {.columns}
+::: {.column width="50%"}
+### ML Classification
+
+-   Black-box models: lack interpretability\
+-   Require large amounts of data\
+-   Very complex
+:::
+
+::: {.column width="50%"}
+### ML + TDA
+
+-   Captures shape-based features\
+-   Simpler
+-   Provides characteristics for some level of interpretability
+:::
+:::::
+::::::
+
+## Shape of the Data
+
+::: {.incremental}
+-   **Shape of the data refers to**
+    -   The digit "**1**" has no loops
+    -   The digit "**0**" has one loop,
+    -   The digit "**8**" has two loops
+:::
+
+::: {.fragment}
+-   The goal is to summarize the pixels into features and aid machine learning models
+:::
+
 # Machine Learning & Classification {#sec-MLMethod}
 
 ## Machine Learning Methods 
-:::{.columns}
 
-::: {.column}
-:::{.fragment}
-- Naive Bayes  
-- K-Nearest Neighbor
-:::
-:::
-
-::: {.column}
-:::{.fragment}
-- Random Forest  
+:::{.incremental}
+- Naive Bayes
+- K-Nearest Neighbors
+- Random Forest
 - Neural Network
-:::
+- SVM
 :::
 
-:::
+<!-- :::{.columns} -->
+
+<!-- ::: {.column} -->
+<!-- :::{.fragment} -->
+<!-- - Naive Bayes   -->
+<!-- - K-Nearest Neighbor -->
+<!-- ::: -->
+<!-- ::: -->
+
+<!-- ::: {.column} -->
+<!-- :::{.fragment} -->
+<!-- - Random Forest   -->
+<!-- - Neural Network -->
+<!-- ::: -->
+<!-- ::: -->
+
+<!-- ::: -->
 
 ## Previous TDA Work
 
@@ -870,6 +955,86 @@ p_post_uni <- plot_intensity(posterior_uni_data, observed = observed_pd, title =
 <!-- - For each PD, we are adding infinite points along diagonal -->
 <!-- ::: -->
 
+## Measuring Density Similarity
+
+```{r, fig.dim=c(10,6)}
+set.seed(7291009)
+n_samples <- 5000
+
+dist_names <- c("Dist A", "Dist B", "Dist C")
+dist_colors <- setNames(brewer.pal(length(dist_names), "Set1"), dist_names)
+
+# Generate and combine data
+data <- tibble(
+  `Dist A` = rnorm(n_samples, 0, .8),
+  `Dist B` = rnorm(n_samples, 1, 1),
+  `Dist C` = rnorm(n_samples, 5, 1)
+) |>
+  pivot_longer(everything(), names_to = "distribution", values_to = "value") |>
+  mutate(distribution = factor(distribution, levels = dist_names))
+
+create_w_plot <- function(data, dist1_name, dist2_name) {
+  
+  df_subset <- data |>
+    filter(distribution %in% c(dist1_name, dist2_name))
+  
+  x1 <- df_subset |> filter(distribution == dist1_name) |> pull(value)
+  x2 <- df_subset |> filter(distribution == dist2_name) |> pull(value)
+
+  w_dist <- transport::wasserstein1d(x1, x2, p = 1)
+  
+  ecdf1 <- ecdf(x1)
+  ecdf2 <- ecdf(x2)
+  
+  x_grid <- sort(unique(c(x1, x2)))
+  ribbon_data <- tibble(
+    x = x_grid,
+    ymin = pmin(ecdf1(x_grid), ecdf2(x_grid)),
+    ymax = pmax(ecdf1(x_grid), ecdf2(x_grid))
+  )
+
+  ggplot(df_subset, aes(x = value, color = distribution)) +
+    geom_ribbon(
+      data = ribbon_data,
+      aes(x = x, ymin = ymin, ymax = ymax),
+      fill = "skyblue", alpha = 0.6, inherit.aes = FALSE
+    ) +
+    stat_ecdf(geom = "step", linewidth = 1.1) +
+    scale_color_manual(values = dist_colors) + 
+    labs(
+      title = paste(dist1_name, "vs.", dist2_name),
+      subtitle = bquote(W[1] == .(round(w_dist, 3))),
+      x = "Value", y = "Cumulative Probability"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none")
+}
+
+p_density <- ggplot(data, aes(x = value, fill = distribution)) +
+  geom_density(alpha = 0.7, color = "white") +
+  scale_fill_manual(values = dist_colors) + 
+  labs(
+    title = "Density of the Three Sampled Distributions",
+    x = "Value", y = "Density"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.title = element_blank(), legend.position = "bottom")
+
+p_density 
+```
+
+## Measuring Density Similarity
+
+```{r, fig.dim=c(10,6)}
+w1 <- create_w_plot(data, "Dist A", "Dist B")
+w2 <- create_w_plot(data, "Dist A", "Dist C")
+w3 <- create_w_plot(data, "Dist B", "Dist C")
+
+(w1 + w2 + w3) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+```
+
 ## Bottleneck & Wasserstein Distance
 
 ```{r, fig.dim=c(10,6)}
@@ -908,11 +1073,10 @@ $\color{green}{\text{For dimension 1, loops/hole of circle}}$
 - For dimension 0:
     - Bottleneck: `r TDA::bottleneck(rips_data1, rips_data2, dimension = 0) |> round(4)`
     - Wasserstein: p=2 `r TDA::wasserstein(rips_data1, rips_data2, p = 2, dimension = 0) |> round(4)`
+Wasserstein also known as Kantorovich-Rubinstein metric
 :::
 
-## Cubical Complexes
-
-
+<!-- ## Cubical Complexes -->
 
 # Analysis {#sec-Analysis}
 

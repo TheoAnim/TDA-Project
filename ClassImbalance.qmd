@@ -113,31 +113,155 @@ The harms of class imbalance corrections for machine learning based prediction m
 
 # Introduction {#sec-Intro}
 
+## Introduction {.smaller}
+
+:::{.incremental}
+* Risk prediction models are increasingly vital in healthcare, but their calibration (the reliability of their risk estimates) is critical for trustworthy clinical decisions.
+* Data used to train these models often suffer from class imbalance, where one class (e.g., patients with a rare disease) is much smaller than the other.
+* A common practice in machine learning is to apply imbalance corrections (e.g., over- or under-sampling) to artificially balance the dataset.
+* However, the effect of these corrections on the calibration of modern machine learning models is not well understood.
+* This study uses extensive simulations to investigate the impact of various imbalance corrections on the performance—especially calibration—of several machine learning algorithms.
+:::
+
 # Methods {#sec-Methods}
 
 ## Data Gathering Scenarios
 
+:::{.incremental}
+* The study was designed around 18 unique data-generating scenarios in a full-factorial design.
+* These scenarios were created by varying three key data characteristics:
+    * Event Fraction: Balanced (0.5), Moderately Imbalanced (0.2), and Strongly Imbalanced (0.02).
+    * Number of Predictors: 8 or 16.
+    * Sample Size: Half (0.5N), exact (N), and double (2N) the minimum required sample size, calculated to achieve a target statistical power.
+* All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85.
+:::
+
 ## Data Generating Mechanism
+
+:::{.incremental}
+* Data for the two classes (events and non-events) were generated from distinct multivariate normal distributions.
+* This allowed for precise control over the differences in means ($\Delta_\mu$) and covariances ($\Delta_\Sigma$) between the classes.
+* The parameters for these distributions were analytically solved to ensure the generated data would consistently have the target C-statistic of 0.85, providing a stable baseline for comparison.
+:::
+
+:::{.fragment}
+$$
+C = \Phi \left(\sqrt{\Delta'_\mu ( \Sigma_0 + \Sigma_1)^{-1} \Delta_\mu} \right)
+$$
+:::
+
 
 ## Model Development
 
-### Imbalance Corrections
+:::{.incremental}
+* A two-step procedure was followed for every model:
+    * Pre-process the training data with a class imbalance correction method.
+    * Train a machine learning algorithm on the resulting data.
+* This resulted in a 5x6 full-factorial design, meaning 30 unique models (5 corrections × 6 algorithms) were developed and compared in each of the 18 scenarios.
+:::
 
-### Machine Learning Algorithms
+## Model Development - Imbalance Corrections {.smaller}
+
+:::{.incremental}
+* Five different approaches to handling class imbalance were compared:
+    * Control: No correction was applied. The model was trained on the original, imbalanced data.
+    * Random Under Sampling (RUS): Randomly removes samples from the majority class to achieve balance.
+    * Random Over Sampling (ROS): Randomly duplicates samples from the minority class.
+    * SMOTE (Synthetic Minority Over-sampling Technique): Creates new, synthetic samples for the minority class by interpolating between existing ones.
+    * SENN (SMOTE + Edited Nearest Neighbors): A hybrid method that first applies SMOTE and then removes observations that are likely noise.
+:::
+
+## Model Development - Machine Learning Algorithms {.smaller}
+
+:::{.incremental}
+* Six machine learning algorithms, frequently used in clinical prediction, were evaluated:
+    * Logistic Regression (LR)
+    * Support Vector Machine (SVM)
+    * Random Forest (RF)
+    * XGBoost (XG)
+* Additionally, two ensemble algorithms specifically designed to handle imbalance were included:
+    * RUSBoost (RB): A boosting algorithm that incorporates random undersampling in each iteration.
+    * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling.
+:::
 
 ## Simulation Methods
 
+:::{.incremental}
+* For each of the 18 scenarios, 2000 independent datasets were generated.
+* Each dataset was composed of a training set and a validation set that was 10 times larger to ensure stable performance evaluation.
+* Models were trained on the training data and their performance was assessed on the unseen validation data.
+* A logistic re-calibration step was also performed on all model predictions to see if post-hoc adjustments could fix any initial miscalibration.
+:::
+
 ## Performance Methods
+
+:::{.incremental}
+* Model performance was evaluated using three key types of metrics:
+    * Calibration: Assessed visually with flexible calibration curves and quantitatively with the calibration intercept (ideal=0) and calibration slope (ideal=1).
+    * Discrimination: The model's ability to separate events from non-events, measured by the Concordance Statistic (C-statistic), which is equivalent to the AUC (ideal=1).
+    * Overall Performance: A single score reflecting both calibration and discrimination, measured by the Brier score (ideal=0).
+:::
 
 ## Software & Error Handling
 
+:::{.incremental}
+* All simulations were conducted in R, leveraging a high-performance computing (HPC) cluster for efficiency.
+* The caret package was used for systematic hyperparameter tuning.
+* A clear error-handling protocol was established: if an imbalance correction or ML algorithm failed, the process would continue where possible (e.g., by using uncorrected data) and the failure would be logged.
+:::
+
 # Results {#sec-Results}
 
-# MIMIC-III Data Case Study {#sec-CaseStudy}
+## Results {.smaller}
 
-# Discussion {#sec-Discussion}
+:::{.incremental}
+* Primary Finding: Across all scenarios with class imbalance, models developed without an imbalance correction consistently demonstrated equal or superior calibration compared to models where corrections were applied.
+* Calibration:
+    * Applying any imbalance correction—whether through pre-processing (RUS, ROS, SMOTE, SENN) or using specialized algorithms (RB, EE)—systematically introduced miscalibration.
+    * This miscalibration was consistently characterized by an over-estimation of risk.
+* Discrimination:
+    * The impact on discrimination was inconsistent and highly dependent on the algorithm. Any observed benefits were generally small.
+* Overall Performance:
+    * The control models (trained on original, imbalanced data) consistently had the best (lowest) Brier scores, indicating better overall performance.
+* Re-calibration:
+    * Post-hoc re-calibration was not a silver bullet. While it could adjust the average predicted risk, it could not fully fix the underlying miscalibration (i.e., the calibration slope) introduced by the imbalance corrections.
+:::
+
+# MIMIC-III Data Case Study {#sec-CaseStudy} 
+
+## MIMIC-III Data Case Study{.smaller}
+
+:::{.incremental}
+* Goal: To test if the simulation findings hold true on a real-world, complex dataset.
+* Data: The MIMIC-III database was used to develop models predicting 90-day mortality for ICU patients. The dataset had a moderate event fraction of 0.17.
+* Methods: The exact same 30 model-building pipelines from the simulation were applied to the MIMIC-III data.
+* Findings:
+    * The case study results strongly corroborated the simulation findings.
+    * Every model that used an imbalance correction exhibited significant miscalibration, systematically overestimating the risk of mortality.
+    * These models also had dramatically worse overall performance (Brier score) compared to their uncorrected counterparts.
+:::
+
+# Discussion {#sec-Discussion} 
+
+## Discussion {.smaller}
+
+:::{.incremental}
+* This study provides strong evidence that for developing calibrated clinical prediction models, applying common imbalance corrections is often harmful.
+* The primary harm is a systematic overestimation of risk, which can lead to poor clinical decisions. This miscalibration is not easily fixed by post-hoc methods.
+* The potential small gains in discrimination from some corrections rarely outweigh the significant cost to calibration.
+* Standard ML algorithms (LR, SVM, RF, XG) are often surprisingly robust and can produce well-calibrated models when trained directly on imbalanced data.
+* Limitations: The study was confined to low-dimensional settings (8-16 predictors). Further research could explore higher dimensions.
+:::
 
 # Conclusion {#sec-Conclusion}
+
+## Conclusion 
+
+:::{.incremental}
+* Correcting for class imbalance is a widely used technique, but its negative impact on model calibration has been under appreciated.
+* When the goal is to produce reliable and accurate risk estimates for individual patients, applying imbalance corrections may do more harm than good.
+* Researchers and practitioners should be cautious and prioritize model calibration, questioning whether imbalance correction is truly necessary for their specific application.
+:::
 
 # References {#sec-References}
 
@@ -145,3 +269,6 @@ The harms of class imbalance corrections for machine learning based prediction m
 
 ::: {#refs .smaller}
 :::
+
+
+

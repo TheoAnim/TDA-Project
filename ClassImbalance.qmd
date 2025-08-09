@@ -123,6 +123,16 @@ The harms of class imbalance corrections for machine learning based prediction m
 * This study uses extensive simulations to investigate the impact of various imbalance corrections on the performance—especially calibration—of several machine learning algorithms.
 :::
 
+:::{.fragment}
+- *reword, content is fine*
+-  *Model calibration captures the accuracy of risk estimates, relating to the agreement between the estimated (predicted) and observed number of events*
+- *If a model is poorly calibrated, it may produce risk estimates that do not approximate a patient’s true risk well. A poorly calibrated model may produce predicted risks that consistently over- or under-estimate true risk or that are too extreme (too close to 0 or 1) or too modest (too close to event prevalence). This can lead to poor treatment decisions or to clinicians communicating false assurances to patients*
+:::
+
+:::{.notes}
+- Imbalance hurts logistic regression, see paper [@goorbergh2022harmclassimbalancecorrections]
+:::
+
 # Methods {#sec-Methods}
 
 ## Data Gathering Scenarios
@@ -136,6 +146,11 @@ The harms of class imbalance corrections for machine learning based prediction m
 * All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85.
 :::
 
+:::{.fragment}
+- *use table 1*
+- *Mention Validation 10x Training set*
+:::
+
 ## Data Generating Mechanism
 
 :::{.incremental}
@@ -145,11 +160,34 @@ The harms of class imbalance corrections for machine learning based prediction m
 :::
 
 :::{.fragment}
+- *Use equations for mvn*
+- *Explaination of notation*
+- *2,000 datasets/scenario*
+:::
+
+## Data Generating Mechanism
+
+:::{.fragment}
+- mean & covariance structure
+:::
+
+## Data Generating Mechanism
+
+:::{.fragment}
 $$
 C = \Phi \left(\sqrt{\Delta'_\mu ( \Sigma_0 + \Sigma_1)^{-1} \Delta_\mu} \right)
 $$
 :::
 
+:::{.fragment}
+- *make sure to talk about concordance = ROC(AUC) in dichotomous case*
+:::
+
+## Data Generating Mechanism
+
+:::{.fragment}
+- *Fig 1 showing data*
+:::
 
 ## Model Development
 
@@ -160,7 +198,11 @@ $$
 * This resulted in a 5x6 full-factorial design, meaning 30 unique models (5 corrections × 6 algorithms) were developed and compared in each of the 18 scenarios.
 :::
 
-## Model Development - Imbalance Corrections {.smaller}
+:::{.fragment}
+- *Shorten bullet points*
+:::
+
+## Model Development - Imbalance Corrections
 
 :::{.incremental}
 * Five different approaches to handling class imbalance were compared:
@@ -169,6 +211,14 @@ $$
     * Random Over Sampling (ROS): Randomly duplicates samples from the minority class.
     * SMOTE (Synthetic Minority Over-sampling Technique): Creates new, synthetic samples for the minority class by interpolating between existing ones.
     * SENN (SMOTE + Edited Nearest Neighbors): A hybrid method that first applies SMOTE and then removes observations that are likely noise.
+:::
+
+:::{.fragment}
+- *Shorten bullet points*
+:::
+
+:::{.notes}
+- In depth explanation of sampling methods
 :::
 
 ## Model Development - Machine Learning Algorithms {.smaller}
@@ -184,16 +234,29 @@ $$
     * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling.
 :::
 
+:::{.fragment}
+- *Shorten bullet points*
+:::
+
 ## Simulation Methods
 
 :::{.incremental}
 * For each of the 18 scenarios, 2000 independent datasets were generated.
 * Each dataset was composed of a training set and a validation set that was 10 times larger to ensure stable performance evaluation.
 * Models were trained on the training data and their performance was assessed on the unseen validation data.
+:::
+
+## Simulation Methods
+
+:::{.fragment}
 * A logistic re-calibration step was also performed on all model predictions to see if post-hoc adjustments could fix any initial miscalibration.
 :::
 
-## Performance Methods
+:::{.fragment}
+- *Miscalibration, use equation*
+:::
+
+## Performance Meaures
 
 :::{.incremental}
 * Model performance was evaluated using three key types of metrics:
@@ -202,12 +265,25 @@ $$
     * Overall Performance: A single score reflecting both calibration and discrimination, measured by the Brier score (ideal=0).
 :::
 
+:::{.fragment}
+- *Shorten bullet points*
+- *add speaker notes about each metric*
+:::
+
 ## Software & Error Handling
 
 :::{.incremental}
 * All simulations were conducted in R, leveraging a high-performance computing (HPC) cluster for efficiency.
 * The caret package was used for systematic hyperparameter tuning.
 * A clear error-handling protocol was established: if an imbalance correction or ML algorithm failed, the process would continue where possible (e.g., by using uncorrected data) and the failure would be logged.
+:::
+
+:::{.fragment}
+- *Shorten bullet points*
+- *Results not exactly reproducible*
+- *Run simulation twice with equivalent results*
+- *Mention imbalance correction issue*
+- *Include table S1*
 :::
 
 # Results {#sec-Results}
@@ -227,6 +303,34 @@ $$
     * Post-hoc re-calibration was not a silver bullet. While it could adjust the average predicted risk, it could not fully fix the underlying miscalibration (i.e., the calibration slope) introduced by the imbalance corrections.
 :::
 
+:::{.fragment}
+- *Shorten bullet points*
+:::
+
+## Results
+
+*embed shiny app*
+
+<!-- <iframe src="https://alex-carriero.shinyapps.io/class_imbalance/" -->
+<!--   width="100%" -->
+<!--   height="600px" -->
+<!--   frameborder="0" -->
+<!--   scrolling="no" -->
+<!--   allowfullscreen> -->
+<!-- <\iframe> -->
+
+:::{.notes}
+- *Calibration plots*
+- *Perfromance metrics*
+:::
+
+## Results
+
+:::{.fragment}
+- *table 4*
+- *scenario 4-6*
+:::
+
 # MIMIC-III Data Case Study {#sec-CaseStudy} 
 
 ## MIMIC-III Data Case Study{.smaller}
@@ -241,6 +345,11 @@ $$
     * These models also had dramatically worse overall performance (Brier score) compared to their uncorrected counterparts.
 :::
 
+:::{.fragment}
+- *Case study overview*
+- *Case study results*
+:::
+
 # Discussion {#sec-Discussion} 
 
 ## Discussion {.smaller}
@@ -253,6 +362,10 @@ $$
 * Limitations: The study was confined to low-dimensional settings (8-16 predictors). Further research could explore higher dimensions.
 :::
 
+:::{.fragment}
+- *Shorten bullet points*
+:::
+
 # Conclusion {#sec-Conclusion}
 
 ## Conclusion 
@@ -261,6 +374,10 @@ $$
 * Correcting for class imbalance is a widely used technique, but its negative impact on model calibration has been under appreciated.
 * When the goal is to produce reliable and accurate risk estimates for individual patients, applying imbalance corrections may do more harm than good.
 * Researchers and practitioners should be cautious and prioritize model calibration, questioning whether imbalance correction is truly necessary for their specific application.
+:::
+
+:::{.fragment}
+- *Shorten bullet points*
 :::
 
 # References {#sec-References}

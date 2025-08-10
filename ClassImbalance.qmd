@@ -387,6 +387,7 @@ $$
 :::
 
 :::{.fragment}
+- *two slides*
 - *Case study overview*
 - *Case study results*
 :::

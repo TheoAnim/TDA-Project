@@ -87,7 +87,8 @@ knitr::opts_chunk$set(
 )
 ggplot2::theme_set(ggplot2::theme_minimal())
 ggplot2::theme_update(panel.grid.minor = ggplot2::element_blank())
-
+library(ROSE)
+source("smote_helpers.R")
 #------------------------------------------------------------#
 ```
 
@@ -157,6 +158,11 @@ The harms of class imbalance corrections for machine learning based prediction m
 <!--     * Event Fraction: Balanced (0.5), Moderately Imbalanced (0.2), and Strongly Imbalanced (0.02). -->
 <!--     * Number of Predictors: 8 or 16. -->
 <!--     * Sample Size: Half (0.5N), exact (N), and double (2N) the minimum required sample size, calculated to achieve a target statistical power. -->
+<!-- * 2000 datasets per scenario -->
+<!-- * All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85 -->
+:::
+
+:::{.notes}
 * 2000 datasets per scenario
 * All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85
 :::
@@ -194,7 +200,6 @@ $$
 :::
 
 
-## Data Generating Mechanism
 ## Data Generating Mechanism{.smaller}
 
 The mean and covariance structure for class 1 was:
@@ -218,49 +223,127 @@ z & z & z & z & z & 1-\delta_\Sigma & 0 & 0 \\
 \end{bmatrix}.
 $$
 
+:::{.incremental}
 - $z = .2(1 - \delta_{\Sigma})$, to ensure equivalent correlation matrices between the two classes
 - The parameters $\delta_{\mu}$ and $\delta_{\Sigma}$ of each scenario were selected to get a C-statistic of 0.85, providing a stable baseline for comparison
+:::
 
-## Data Generating Mechanism{.smaller}
+## Data Generating Mechanism
+
 :::{.fragment}
 $$
 C = \Phi \left(\sqrt{\Delta'_\mu ( \Sigma_0 + \Sigma_1)^{-1} \Delta_\mu} \right)
 $$
 :::
-:::{.fragment}
-- *make sure to talk about concordance = ROC(AUC) in dichotomous case*
+
+:::{.incremental}
+- Concordance is equivalent to AUC in dichotomous case
+- Measures model discrimination
+- Captures a model’s ability to yield higher risk estimates for patients with the event
+than for those without the event
 :::
 
 ## Model Development
 
 :::{.incremental}
-* A two-step procedure was followed for every model:
+* A two-step procedure for each model:
     * Pre-process the training data with a class imbalance correction method
-    * Train a machine learning algorithm on the resulting data.
+    * Train a machine learning algorithm on the resulting data
 * Implemented a 5x6 full-factorial design to compare predictive performance 
   * 1 control, 4 corrections and 6 machine learning algorithms
   * 30 unique models were developed and compared in each of the 18 scenarios
 :::
 
 
-## Model Development - Imbalance Corrections
+## Model Development - Imbalance Corrections {.smaller}
 
 :::{.incremental}
 * Five different approaches to handling class imbalance were compared:
-    * Control: No correction was applied. The model was trained on the original, imbalanced data.
-    * Random Under Sampling (RUS): Randomly removes samples from the majority class to achieve balance.
-    * Random Over Sampling (ROS): Randomly duplicates samples from the minority class.
-    * SMOTE (Synthetic Minority Over-sampling Technique): Creates new, synthetic samples for the minority class by interpolating between existing ones.
-    * SENN (SMOTE + Edited Nearest Neighbors): A hybrid method that first applies SMOTE and then removes observations that are likely noise.
+    * Control: No correction applied, Model trained on the original, imbalanced data
+    * Random Under Sampling (RUS): Randomly removes samples from the majority class to achieve balance
+    * Random Over Sampling (ROS): Randomly duplicates samples from the minority class
+    * SMOTE (Synthetic Minority Over-sampling Technique): Creates new, synthetic samples for the minority class by interpolating between existing ones
+    * SENN (SMOTE + Edited Nearest Neighbors): A hybrid method that first applies SMOTE and then removes observations that are likely noise
 :::
 
-:::{.fragment}
-- *Shorten bullet points*
-:::
+<!-- :::{.fragment} -->
+<!-- - *Shorten bullet points* -->
+<!-- ::: -->
 
 :::{.notes}
 - In depth explanation of sampling methods
 :::
+
+## Model Development - Imbalance Corrections 
+
+```{r, fig.dim=c(10,6)}
+set.seed(3740431)
+imbalanced_data <- bind_rows(
+  MASS::mvrnorm(n = 1960, mu = c(-0.2, 0.2), Sigma = matrix(c(1, 0.7, 0.7, 1), 2)) |>
+    as_tibble() |> mutate(class = "0"),
+  MASS::mvrnorm(n = 40, mu = c(1.5, -1.5), Sigma = matrix(c(1, 0.7, 0.7, 1), 2)) |>
+    as_tibble() |> mutate(class = "1")
+) |>
+  rename(x1 = V1, x2 = V2) |>
+  mutate(class = as.factor(class))
+
+rus_data <- ovun.sample(class ~ ., data = imbalanced_data, method = "under", N = 80, seed = 1)$data
+
+ros_data <- ovun.sample(class ~ ., data = imbalanced_data, method = "over", N = 3920, seed = 1)$data
+
+rose_data <- ROSE(class ~ ., data = imbalanced_data, seed = 123)$data
+
+features <- imbalanced_data |> select(-class)
+labels   <- imbalanced_data$class
+
+senn_data_iric <- SmoteENN(x = features, y = labels)
+senn_data_iric <- senn_data_iric |> mutate(class = y)
+
+plot_theme <- theme_classic(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "plain"), legend.position = "none")
+
+p_control <- ggplot(imbalanced_data, aes(x = x1, y = x2, color = class)) +
+  geom_point(alpha = 0.8, size = 1.5) +
+  scale_color_manual(values = c("0" = "grey75", "1" = "black")) +
+  labs(title = "No Imbalance Correction (Control)") +
+  theme_classic(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "plain"),
+        legend.position = c(0.85, 0.85),
+        legend.background = element_rect(fill = "transparent"))
+
+p_rus <- ggplot(rus_data, aes(x = x1, y = x2, color = class)) +
+  geom_point(alpha = 0.8, size = 1.5) +
+  scale_color_manual(values = c("0" = "grey75", "1" = "black")) +
+  labs(title = "Random Under Sampling (RUS)") +
+  plot_theme
+
+p_ros <- ggplot(ros_data, aes(x = x1, y = x2, color = class)) +
+  geom_point(aes(size = class), alpha = 0.8) +
+  scale_size_manual(values = c("0" = 0.5, "1" = 2.5)) +
+  scale_color_manual(values = c("0" = "grey75", "1" = "black")) +
+  labs(title = "Random Over Sampling (ROS)") +
+  plot_theme
+
+p_smote <- ggplot(rose_data, aes(x = x1, y = x2, color = class)) +
+  geom_point(alpha = 0.8, size = 1.5) +
+  scale_color_manual(values = c("0" = "grey75", "1" = "black")) +
+  labs(title = "SMOTE") +
+  plot_theme
+
+p_senn <- ggplot(senn_data_iric, aes(x = x1, y = x2, color = class)) +
+  geom_point(alpha = 0.8, size = 1.5) +
+  scale_color_manual(values = c("0" = "grey75", "1" = "black")) +
+  labs(title = "SMOTE-ENN") +
+  plot_theme
+
+layout <- "
+#AAAA#
+BBBCCC
+DDDEEE
+"
+
+p_control + p_rus + p_ros + p_smote + p_senn + plot_layout(design = layout)
+```
 
 ## Model Development - Machine Learning Algorithms {.smaller}
 
@@ -270,21 +353,21 @@ $$
     * Support Vector Machine (SVM)
     * Random Forest (RF)
     * XGBoost (XG)
-* Additionally, two ensemble algorithms specifically designed to handle imbalance were included:
-    * RUSBoost (RB): A boosting algorithm that incorporates random undersampling in each iteration.
-    * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling.
+    * Two ensemble algorithms specifically designed to handle imbalance were included:
+        * RUSBoost (RB): A boosting algorithm that incorporates random undersampling in each iteration.
+        * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling.
 :::
 
-:::{.fragment}
-- *Shorten bullet points*
-:::
+<!-- :::{.fragment} -->
+<!-- - *Shorten bullet points* -->
+<!-- ::: -->
 
 ## Simulation Methods
 
 :::{.incremental}
-* For each of the 18 scenarios, 2000 independent datasets were generated.
-* Each dataset was composed of a training set and a validation set that was 10 times larger to ensure stable performance evaluation.
-* Models were trained on the training data and their performance was assessed on the unseen validation data.
+* For each of the 18 scenarios, 2000 independent datasets were generated
+* Each dataset was composed of a training set and a validation set that was 10 times larger to ensure stable performance evaluation
+* Models were trained on the training data and their performance was assessed on the unseen validation data
 :::
 
 ## Simulation Methods
@@ -294,37 +377,59 @@ $$
 :::
 
 :::{.fragment}
-- *Miscalibration, use equation*
+$$
+\log \left(\frac{P(Y_i=1)}{1 - P(Y_i=1)}\right) = \beta_0 + \log\left(\frac{p_i}{1 - p_i}\right)
+$$
+:::
+
+:::{.fragment}
+- After the re-calibration procedure was implemented, predictive performance was then re-assessed using the re-calibrated predictions
+:::
+
+:::{.notes}
+- For each observation in the validation set, the predicted risk and corresponding
+observed outcome (0 or 1) were stored.
+- Then, the predicted risks were re-calibrated using the following
+logistic regression model
+- Here, Yi represents the observed outcome for the ith observation in the validation set and pi represents the
+predicted risk for the ith observation in the validation set, from a given prediction model
+- The logarithms in equation (4) represent the natural logarithm
+- This approach is similar to platt scaling [28], except, only an intercept term is estimated (β0), while platt scaling typically includes the estimation of both an intercept and slope (i.e., a slope coefficient is estimated, rather than included as an offset) [28]
+- After the re-calibration procedure was implemented, predictive performance was then re-assessed using the re-calibrated predictions.
 :::
 
 ## Performance Meaures
 
 :::{.incremental}
-* Model performance was evaluated using three key types of metrics:
-    * Calibration: Assessed visually with flexible calibration curves and quantitatively with the calibration intercept (ideal=0) and calibration slope (ideal=1).
-    * Discrimination: The model's ability to separate events from non-events, measured by the Concordance Statistic (C-statistic), which is equivalent to the AUC (ideal=1).
-    * Overall Performance: A single score reflecting both calibration and discrimination, measured by the Brier score (ideal=0).
+* Model performance was evaluated with three metrics:
+    * Calibration: Assessed visually with flexible calibration curves and quantitatively with the calibration intercept (ideal=0) and calibration slope (ideal=1)
+    * Discrimination: The model's ability to separate events from non-events, measured by Concordance (ideal=1)
+    * Overall Performance: A score reflecting calibration and discrimination, measured by Brier score (ideal=0)
 :::
 
 :::{.fragment}
-- *Shorten bullet points*
-- *add speaker notes about each metric*
+$$
+BS = \frac{1}{N} \sum\limits_{t=1}^N (f_t - o_t)^2
+$$
+:::
+
+:::{.notes}
+- Brier score: Like cost function, equivalent to MSE in uni dimensional case. 
+    - $f_t$ is probability that event was forecaset
+    - $o_t$ is acutal outcome of the event at instance $t$, 0 doesn't happen, 1 happened
+    - $N$ is number of forecasting instances
 :::
 
 ## Software & Error Handling
 
 :::{.incremental}
-* All simulations were conducted in R, leveraging a high-performance computing (HPC) cluster for efficiency.
-* The caret package was used for systematic hyperparameter tuning.
-* A clear error-handling protocol was established: if an imbalance correction or ML algorithm failed, the process would continue where possible (e.g., by using uncorrected data) and the failure would be logged.
+* All simulations were conducted in R, using high-performance computing cluster
+* A clear error-handling protocol was established: if an imbalance correction or ML algorithm failed, the process would continue where possible (e.g., by using uncorrected data) and the failure would be logged
+* Results not fully reproducible
 :::
 
-:::{.fragment}
-- *Shorten bullet points*
-- *Results not exactly reproducible*
-- *Run simulation twice with equivalent results*
-- *Mention imbalance correction issue*
-- *Include table S1*
+:::{.notes}
+- *Table S1*
 :::
 
 # Results {#sec-Results}
@@ -332,25 +437,21 @@ $$
 ## Results {.smaller}
 
 :::{.incremental}
-* Primary Finding: Across all scenarios with class imbalance, models developed without an imbalance correction consistently demonstrated equal or superior calibration compared to models where corrections were applied.
+* Across all scenarios with class imbalance, models developed without imbalance correction consistently demonstrated equal or superior calibration compared to models with corrections applied
 * Calibration:
-    * Applying any imbalance correction—whether through pre-processing (RUS, ROS, SMOTE, SENN) or using specialized algorithms (RB, EE)—systematically introduced miscalibration.
-    * This miscalibration was consistently characterized by an over-estimation of risk.
+    * Applying any imbalance correction—whether through pre-processing (RUS, ROS, SMOTE, SENN) or using specialized algorithms (RB, EE), systematically introduced miscalibration
+    * This miscalibration was consistently characterized by an over-estimation of risk
 * Discrimination:
-    * The impact on discrimination was inconsistent and highly dependent on the algorithm. Any observed benefits were generally small.
+    * The impact on discrimination was inconsistent and highly dependent on the algorithm
+    * Any observed benefits were generally small.
 * Overall Performance:
-    * The control models (trained on original, imbalanced data) consistently had the best (lowest) Brier scores, indicating better overall performance.
+    * The control models consistently had the best Brier scores
 * Re-calibration:
-    * Post-hoc re-calibration was not a silver bullet. While it could adjust the average predicted risk, it could not fully fix the underlying miscalibration (i.e., the calibration slope) introduced by the imbalance corrections.
-:::
-
-:::{.fragment}
-- *Shorten bullet points*
+    * Post-hoc re-calibration adjusted the average predicted risk
+    * Couldn't fix the underlying miscalibration introduced by the imbalance corrections
 :::
 
 ## Results
-
-*embed shiny app*
 
 <!-- <iframe src="https://alex-carriero.shinyapps.io/class_imbalance/" -->
 <!--   width="100%" -->
@@ -358,36 +459,146 @@ $$
 <!--   frameborder="0" -->
 <!--   scrolling="no" -->
 <!--   allowfullscreen> -->
-<!-- <\iframe> -->
+<!-- </iframe> -->
+
+<iframe src="https://iframe.ly/embed?url=https://alex-carriero.shinyapps.io/class_imbalance/&format=html" 
+        width="100%" height="600px" frameborder="0"></iframe>
 
 :::{.notes}
+- [Shiny App](https://alex-carriero.shinyapps.io/class_imbalance/)
 - *Calibration plots*
 - *Perfromance metrics*
 :::
 
 ## Results
 
-:::{.fragment}
-- *table 4*
-- *scenario 4-6*
-:::
+
+```{r}
+results_df <- tribble(
+  ~Scenario, ~Metric, ~C_LR, ~C_SVM, ~C_RF, ~C_XG, ~C_RB, ~C_EE, ~RUS_LR, ~RUS_SVM, ~RUS_RF, ~RUS_XG, ~RUS_RB, ~RUS_EE, ~ROS_LR, ~ROS_SVM, ~ROS_RF, ~ROS_XG, ~ROS_RB, ~ROS_EE, ~SMOTE_LR, ~SMOTE_SVM, ~SMOTE_RF, ~SMOTE_XG, ~SMOTE_RB, ~SMOTE_EE, ~SENN_LR, ~SENN_SVM, ~SENN_RF, ~SENN_XG, ~SENN_RB, ~SENN_EE,
+  "S4", "Concordance", "0.84", "0.86", "0.84", "0.84", "0.84", "0.83", "0.84", "0.86", "0.84", "0.84", "0.83", "0.82", "0.84", "0.85", "0.84", "0.82", "0.83", "0.82", "0.84", "0.86", "0.84", "0.84", "0.83", "0.82", "0.84", "0.85", "0.84", "0.84", "0.83", "0.83",
+  "S4", "MCMC Error", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01",
+  "S4", "Brier Score", "0.16", "0.15", "0.16", "0.16", "0.17", "0.19", "0.16", "0.15", "0.16", "0.16", "0.17", "0.19", "0.16", "0.16", "0.17", "0.19", "0.17", "0.19", "0.16", "0.15", "0.16", "0.16", "0.17", "0.19", "0.17", "0.17", "0.17", "0.18", "0.17", "0.17",
+  "S4", "MCMC Error", "<0.01", "<0.01", "<0.01", "0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "0.01", "0.01", "<0.01", "<0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "<0.01", "<0.01", "<0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01",
+  "S4", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S4", "MCMC Error", "0.14", "0.14", "0.12", "0.15", "0.07", "0.05", "0.11", "0.12", "0.09", "0.11", "0.07", "0.05", "0.13", "0.20", "0.34", "0.51", "0.18", "0.17", "0.10", "0.11", "0.09", "0.11", "0.08", "0.05", "0.23", "0.25", "0.15", "0.26", "0.14", "0.07",
+  "S4", "Calib. Slope", "0.92", "0.96", "1.25", "0.91", "1.46", ">10.0", "0.92", "0.96", "1.25", "0.90", "1.46", ">10.0", "0.88", "0.87", "1.21", "0.56", "1.26", ">10.0", "0.90", "0.94", "1.21", "0.89", "1.43", ">10.0", "0.57", "0.58", "0.78", "0.52", "0.83", "1.62",
+  "S4", "MCMC Error", "0.10", "0.11", "0.18", "0.12", "0.17", "0.17", "0.11", "0.11", "0.18", "0.12", "0.17", "0.17", "0.12", "0.11", "0.19", "0.10", "0.15", "0.16", "0.10", "0.11", "0.18", "0.12", "0.16", "0.16", "0.19", "0.20", "0.27", "0.21", "0.33", "0.34",
+  "S5", "Concordance", "0.84", "0.82", "0.82", "0.82", "0.83", "0.82", "0.83", "0.85", "0.83", "0.80", "0.81", "0.80", "0.83", "0.83", "0.83", "0.79", "0.80", "0.80", "0.84", "0.83", "0.82", "0.81", "0.80", "0.81", "0.83", "0.83", "0.82", "0.82", "0.81", "0.82",
+  "S5", "MCMC Error", "0.01", "0.03", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02",
+  "S5", "Brier Score", "0.12", "0.12", "0.12", "0.12", "0.17", "0.20", "0.18", "0.16", "0.18", "0.19", "0.20", "0.20", "0.17", "0.15", "0.12", "0.15", "0.15", "0.15", "0.16", "0.14", "0.13", "0.15", "0.14", "0.15", "0.19", "0.16", "0.15", "0.17", "0.16", "0.15",
+  "S5", "MCMC Error", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.02", "0.01", "0.01", "0.01", "0.01", "0.01",
+  "S5", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S5", "MCMC Error", "0.22", "0.23", "0.18", "0.23", "0.10", "0.07", "0.40", "0.23", "0.18", "0.36", "0.14", "0.08", "0.16", "0.24", "0.17", "0.43", "0.17", "0.10", "0.18", "0.30", "0.18", "0.33", "0.20", "0.10", "0.30", "0.40", "0.24", "0.46", "0.25", "0.10",
+  "S5", "Calib. Slope", "0.85", "0.97", "1.27", "0.79", "1.52", ">10.0", "0.67", "0.96", "1.26", "0.62", "1.30", ">10.0", "0.76", "0.61", "1.10", "0.33", "0.85", "1.78", "0.71", "0.55", "0.84", "0.41", "0.78", "1.71", "0.54", "0.43", "0.66", "0.35", "0.58", "1.48",
+  "S5", "MCMC Error", "0.14", "0.55", "0.20", "0.13", "0.24", "0.27", "0.17", "0.26", "0.31", "0.14", "0.24", "0.27", "0.14", "0.11", "0.20", "0.05", "0.13", "0.18", "0.13", "0.10", "0.15", "0.07", "0.13", "0.17", "0.12", "0.08", "0.15", "0.05", "0.10", "0.16",
+  "S6", "Concordance", "0.84", "0.71", "0.78", "0.82", "0.83", "0.81", "0.82", "0.84", "0.82", "0.79", "0.81", "0.79", "0.84", "0.80", "0.81", "0.76", "0.76", "0.76", "0.84", "0.80", "0.80", "0.78", "0.76", "0.78", "0.84", "0.80", "0.80", "0.79", "0.77", "0.79",
+  "S6", "MCMC Error", "0.01", "0.04", "0.02", "0.02", "0.02", "0.02", "0.03", "0.02", "0.02", "0.03", "0.03", "0.03", "0.01", "0.02", "0.02", "0.02", "0.03", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02",
+  "S6", "Brier Score", "0.02", "0.02", "0.02", "0.02", "0.16", "0.20", "0.19", "0.17", "0.18", "0.21", "0.22", "0.20", "0.16", "0.05", "0.02", "0.02", "0.04", "0.04", "0.15", "0.05", "0.03", "0.03", "0.03", "0.05", "0.16", "0.05", "0.03", "0.04", "0.04", "0.05",
+  "S6", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "0.02", "0.01", "0.04", "0.03", "0.03", "0.04", "0.03", "0.02", "0.01", "0.01", "<0.01", "<0.01", "<0.01", "<0.01", "0.02", "0.01", "<0.01", "<0.01", "<0.01", "0.01", "0.02", "0.01", "<0.01", "<0.01", "<0.01", "0.01",
+  "S6", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S6", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", ">10.0", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S6", "Calib. Slope", "0.90", "1.41", "0.63", "0.84", "1.49", ">10.0", "0.54", "0.96", "1.18", "0.52", "1.26", "1.86", "0.72", "0.14", "0.53", "0.25", "0.35", "1.67", "0.62", "0.16", "0.48", "0.22", "0.28", "1.50", "0.57", "0.15", "0.45", "0.20", "0.25", "1.38",
+  "S6", "MCMC Error", "0.12", ">10.0", "0.20", "0.13", "0.28", "0.30", "0.18", "0.66", "0.32", "0.12", "0.26", "0.28", "0.13", "0.04", "0.18", "0.02", "0.06", "0.17", "0.11", "0.03", "0.12", "0.02", "0.05", "0.13", "0.11", "0.03", "0.11", "0.02", "0.04", "0.12",
+  "S4R", "Concordance", "0.84", "0.84", "0.83", "0.82", "0.84", "0.85", "0.84", "0.82", "0.83", "0.82", "0.84", "0.86", "0.86", "0.84", "0.84", "0.83", "0.82", "0.84", "0.85", "0.84", "0.84", "0.83", "0.84", "0.86", "0.84", "0.83", "0.84", "0.84", "0.83", "0.84",
+  "S4R", "MCMC Error", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01",
+  "S4R", "Brier Score", "0.16", "0.16", "0.17", "0.19", "0.16", "0.16", "0.17", "0.18", "0.17", "0.19", "0.16", "0.15", "0.15", "0.16", "0.16", "0.17", "0.19", "0.17", "0.16", "0.17", "0.17", "0.17", "0.16", "0.17", "0.16", "0.17", "0.19", "0.16", "0.15", "0.16",
+  "S4R", "MCMC Error", "<0.01", "0.01", "0.01", "<0.01", "<0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "<0.01", "<0.01", "<0.01", "<0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "<0.01", "0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S4R", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S4R", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S4R", "Calib. Slope", "0.92", "0.90", "1.46", ">10.0", "0.88", "0.87", "1.21", "0.56", "1.26", ">10.0", "0.90", "0.96", "0.94", "1.21", "0.89", "1.43", ">10.0", "0.57", "0.58", "0.78", "0.52", "0.83", "1.62", "0.92", "0.96", "1.25", "0.91", "1.46", ">10.0", "1.25",
+  "S4R", "MCMC Error", "0.10", "0.12", "0.17", "0.17", "0.12", "0.11", "0.19", "0.10", "0.15", "0.16", "0.10", "0.11", "0.11", "0.18", "0.12", "0.16", "0.16", "0.19", "0.20", "0.27", "0.21", "0.33", "0.34", "0.11", "0.11", "0.18", "0.12", "0.17", "0.17", "0.18",
+  "S5R", "Concordance", "0.84", "0.80", "0.81", "0.80", "0.83", "0.83", "0.83", "0.79", "0.80", "0.80", "0.84", "0.82", "0.83", "0.82", "0.81", "0.80", "0.81", "0.83", "0.83", "0.82", "0.82", "0.81", "0.82", "0.83", "0.82", "0.83", "0.85", "0.83", "0.82", "0.82",
+  "S5R", "MCMC Error", "0.01", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.03", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.01", "0.02", "0.02",
+  "S5R", "Brier Score", "0.12", "0.13", "0.13", "0.14", "0.12", "0.13", "0.12", "0.15", "0.13", "0.13", "0.12", "0.12", "0.13", "0.12", "0.14", "0.13", "0.13", "0.13", "0.14", "0.13", "0.15", "0.13", "0.12", "0.13", "0.12", "0.12", "0.13", "0.13", "0.12", "0.12",
+  "S5R", "MCMC Error", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01", "<0.01", "0.01", "0.01", "0.01",
+  "S5R", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S5R", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S5R", "Calib. Slope", "0.85", "0.62", "1.30", ">10.0", "0.76", "0.61", "1.10", "0.33", "0.85", "1.78", "0.71", "0.97", "0.55", "0.84", "0.41", "0.78", "1.71", "0.54", "0.43", "0.66", "0.35", "0.58", "1.48", "0.67", "0.96", "1.26", "0.79", "1.52", ">10.0", "1.27",
+  "S5R", "MCMC Error", "0.14", "0.14", "0.24", "0.27", "0.14", "0.11", "0.20", "0.05", "0.13", "0.18", "0.13", "0.55", "0.10", "0.15", "0.07", "0.13", "0.17", "0.12", "0.08", "0.15", "0.05", "0.10", "0.16", "0.17", "0.26", "0.31", "0.13", "0.24", "0.27", "0.20",
+  "S6R", "Concordance", "0.84", "0.79", "0.81", "0.79", "0.84", "0.80", "0.80", "0.76", "0.76", "0.76", "0.84", "0.71", "0.80", "0.80", "0.78", "0.76", "0.78", "0.84", "0.80", "0.80", "0.79", "0.77", "0.78", "0.82", "0.83", "0.81", "0.82", "0.84", "0.82", "0.79",
+  "S6R", "MCMC Error", "0.01", "0.03", "0.03", "0.03", "0.01", "0.03", "0.10", "0.02", "0.03", "0.02", "0.01", "0.04", "0.02", "0.04", "0.02", "0.02", "0.02", "0.01", "0.02", "0.05", "0.02", "0.02", "0.03", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02",
+  "S6R", "Brier Score", "0.02", "0.02", "0.02", "0.02", "0.02", "0.03", "0.02", "0.03", "0.02", "0.02", "0.02", "0.02", "0.03", "0.02", "0.03", "0.02", "0.02", "0.02", "0.03", "0.02", "0.03", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02", "0.02",
+  "S6R", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S6R", "Calib. Int.", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S6R", "MCMC Error", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", ">10.0", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01", "<0.01",
+  "S6R", "Calib. Slope", "0.90", "0.52", "1.26", "1.86", "0.72", "0.14", "0.56", "0.25", "0.35", "1.67", "0.62", "1.41", "0.16", "0.48", "0.22", "0.28", "1.50", "0.57", "0.15", "0.45", "0.20", "0.25", "1.38", "0.84", "1.49", ">10.0", "0.54", "0.96", "1.18", "0.63",
+  "S6R", "MCMC Error", "0.12", "0.12", "0.26", "0.28", "0.13", "0.05", "0.16", "0.02", "0.06", "0.17", "0.11", ">10.0", "0.03", "0.12", "0.02", "0.05", "0.13", "0.11", "0.03", "0.11", "0.02", "0.04", "0.12", "0.13", "0.28", "0.30", "0.18", "0.66", "0.32", "0.20"
+)
+
+```
+
+
+```{r}
+df_scenarios <- results_df |> 
+  filter(Scenario %in% c("S4", "S5", "S6"))
+
+df_recalibrated <- results_df |> 
+  filter(Scenario %in% c("S4R", "S5R", "S6R"))
+
+header_structure <- c(
+  "Metric" = 1, 
+  "Control" = 6, "RUS" = 6, "ROS" = 6, "SMOTE" = 6, "SENN" = 6
+)
+
+col_names_vector <- c("", rep(c("LR", "SVM", "RF", "XG", "RB", "EE"), 5))
+df_scenarios |>
+  select(-Scenario) |>
+  kbl(
+    caption = "Table 4a: Median performance for simulation scenarios 4-6.",
+    booktabs = TRUE,
+    align = c("l", rep("c", 30)),
+    col.names = c("", rep(c("LR", "SVM", "RF", "XG", "RB", "EE"), 5))
+  ) |>
+  add_header_above(header_structure) |>
+  pack_rows("Scenario 4", 1, 8, label_row_css = "font-weight: bold;") |>
+  pack_rows("Scenario 5", 9, 16, label_row_css = "font-weight: bold;") |>
+  pack_rows("Scenario 6", 17, 24, label_row_css = "font-weight: bold;") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 8) |>
+  scroll_box(width = "95%", height = "600px")
+```
+
+## Results
+
+```{r}
+df_recalibrated |>
+  select(-Scenario) |>
+  kbl(
+    caption = "Table 4b: Median performance for recalibrated scenarios 4-6.",
+    booktabs = TRUE,
+    align = c("l", rep("c", 30)),
+    col.names = col_names_vector
+  ) |>
+  add_header_above(header_structure) |>
+  pack_rows("Scenario 4 Recalibrated", 1, 8, label_row_css = "font-weight: bold;") |>
+  pack_rows("Scenario 5 Recalibrated", 9, 16, label_row_css = "font-weight: bold;") |>
+  pack_rows("Scenario 6 Recalibrated", 17, 24, label_row_css = "font-weight: bold;") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 10) |>
+  scroll_box(width = "95%", height = "600px")
+```
+
+<!-- :::{.fragment} -->
+<!-- - *table 4* -->
+<!-- - *scenario 4-6* -->
+<!-- ::: -->
 
 # MIMIC-III Data Case Study {#sec-CaseStudy} 
 
 ## MIMIC-III Data Case Study{.smaller}
 
 :::{.incremental}
-* Goal: To test if the simulation findings hold true on a real-world, complex dataset.
-* Data: The MIMIC-III database was used to develop models predicting 90-day mortality for ICU patients. The dataset had a moderate event fraction of 0.17.
-* Methods: The exact same 30 model-building pipelines from the simulation were applied to the MIMIC-III data.
+* Goal: To test if the simulation findings hold true on real-world dataset.
+* Data: The MIMIC-III database was used to develop models predicting 90-day mortality for ICU patients
+    * The dataset had a event fraction of 0.17
+* Methods: Same 30 model-building pipelines from simulation applied to MIMIC-III data
 * Findings:
-    * The case study results strongly corroborated the simulation findings.
-    * Every model that used an imbalance correction exhibited significant miscalibration, systematically overestimating the risk of mortality.
-    * These models also had dramatically worse overall performance (Brier score) compared to their uncorrected counterparts.
+    * The case study results strongly corroborated the simulation findings
+    * Every model that used an imbalance correction exhibited significant miscalibration, systematically overestimating the risk of mortality
+    * These models also had worse overall performance (Brier score) compared to their uncorrected counterparts
 :::
 
 :::{.fragment}
-- *two slides*
+- *Two slides*
 - *Case study overview*
 - *Case study results*
 :::
@@ -397,29 +608,24 @@ $$
 ## Discussion {.smaller}
 
 :::{.incremental}
-* This study provides strong evidence that for developing calibrated clinical prediction models, applying common imbalance corrections is often harmful.
-* The primary harm is a systematic overestimation of risk, which can lead to poor clinical decisions. This miscalibration is not easily fixed by post-hoc methods.
-* The potential small gains in discrimination from some corrections rarely outweigh the significant cost to calibration.
-* Standard ML algorithms (LR, SVM, RF, XG) are often surprisingly robust and can produce well-calibrated models when trained directly on imbalanced data.
-* Limitations: The study was confined to low-dimensional settings (8-16 predictors). Further research could explore higher dimensions.
+* This study provides strong evidence that for developing calibrated clinical prediction models, applying common imbalance corrections is often harmful
+* The primary harm is a systematic overestimation of risk, which can lead to poor clinical decisions
+    * This miscalibration is not easily fixed by post-hoc methods
+* The potential gains in discrimination from corrections don't outweigh significant cost to calibration
+* Standard ML algorithms are often surprisingly robust and produce well-calibrated models when trained directly on imbalanced data
+* Limitations: The study was confined to low-dimensional settings
+      * Further research could explore higher dimensions
 :::
 
-:::{.fragment}
-- *Shorten bullet points*
-:::
 
 # Conclusion {#sec-Conclusion}
 
 ## Conclusion 
 
 :::{.incremental}
-* Correcting for class imbalance is a widely used technique, but its negative impact on model calibration has been under appreciated.
-* When the goal is to produce reliable and accurate risk estimates for individual patients, applying imbalance corrections may do more harm than good.
-* Researchers and practitioners should be cautious and prioritize model calibration, questioning whether imbalance correction is truly necessary for their specific application.
-:::
-
-:::{.fragment}
-- *Shorten bullet points*
+* Correcting for class imbalance is a widely used technique, but potential negative impact on model calibration
+* When the goal is to produce reliable and accurate risk estimates for individual patients, applying imbalance corrections may do more harm than good
+* Researchers and practitioners should be cautious and prioritize model calibration over class imbalance
 :::
 
 # References {#sec-References}
@@ -428,6 +634,3 @@ $$
 
 ::: {#refs .smaller}
 :::
-
-
-

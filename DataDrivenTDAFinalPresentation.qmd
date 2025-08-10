@@ -281,7 +281,6 @@ eval_grid <- expand_grid(
 # Workflow
 
 ```{tikz}
-%| label: fig-workflow
 %| echo: false
 
 \usetikzlibrary{positioning, arrows.meta}
@@ -303,10 +302,10 @@ eval_grid <- expand_grid(
 \node (train) {Train Data \\ 60,000 \\ 28x28};
 \node (test) [below=4.5cm of train] {Test Data \\ 10,000 \\ 28x28};
 
-\node (train1) [right=of train] {EB Set 5\%};
-\node (train2) [below=.5cm of train1] {Training Set 95\%};
+\node (train1) [right=.5cm of train] {EB Set 5\%};
+\node (train2) [below=1.75cm of train1] {Training Set 95\%};
 
-\node (priors) [right=of train1] {Priors, \\2/class};
+\node (priors) [right=2.5cm of train1] {Priors, \\2/class};
 \node (OPD0) [below=.5cm of priors] {Observed PD's for 0};
 \node (PDdots) [below=0.1cm of OPD0] {$\vdots$};
 \node (OPD9) [below=.1cm of PDdots] {Observed PD's for 9};

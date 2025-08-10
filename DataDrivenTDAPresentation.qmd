@@ -248,7 +248,7 @@ Binary filtration straight to persistence diagram, the images are cubical comple
 :::
 
 ::: {.column width="50%"}
-### ML + TDA
+### TDA Classification
 
 -   Captures shape-based features\
 -   Simpler
@@ -267,7 +267,7 @@ Binary filtration straight to persistence diagram, the images are cubical comple
 :::
 
 ::: {.fragment}
--   The goal is to summarize the pixels into features and aid machine learning models
+-   The goal is to compare Bayes TDA to ML methods in digits classification
 :::
 
 # Machine Learning & Classification {#sec-MLMethod}

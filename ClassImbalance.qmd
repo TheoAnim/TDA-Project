@@ -138,22 +138,28 @@ The harms of class imbalance corrections for machine learning based prediction m
 :::
 
 # Methods {#sec-Methods}
-
+## Methods
+:::{.incremental}
+* Implemented a simulation study to investigate the effects of imbalance corrections methods across 18 unique data-generating scenarios
+* Focused on prediction models for dichotomous risk prediction
+* Compared prediction performance of models developed with imbalanced corrected data to those without correction 
+:::
 ## Data Gathering Scenarios
 
-:::{.incremental}
-* The study was designed around 18 unique data-generating scenarios in a full-factorial design.
-* These scenarios were created by varying three key data characteristics:
-    * Event Fraction: Balanced (0.5), Moderately Imbalanced (0.2), and Strongly Imbalanced (0.02).
-    * Number of Predictors: 8 or 16.
-    * Sample Size: Half (0.5N), exact (N), and double (2N) the minimum required sample size, calculated to achieve a target statistical power.
-* All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85.
-:::
+![](Imbalance Table 1.png)
 
-:::{.fragment}
-- *use table 1*
-- *Mention Validation 10x Training set*
-:::
+<!-- :::{.incremental} -->
+
+<!-- ::: -->
+
+<!-- :::{.fragment} -->
+<!-- - *Mention Validation 10x Training set* -->
+<!-- * These scenarios were created by varying -->
+<!--     * Event Fraction: Balanced (0.5), Moderately Imbalanced (0.2), and Strongly Imbalanced (0.02). -->
+<!--     * Number of Predictors: 8 or 16. -->
+<!--     * Sample Size: Half (0.5N), exact (N), and double (2N) the minimum required sample size, calculated to achieve a target statistical power. -->
+<!-- * All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85. -->
+<!-- ::: -->
 
 ## Data Generating Mechanism
 

@@ -165,6 +165,8 @@ The harms of class imbalance corrections for machine learning based prediction m
 
 :::{.incremental}
 * Data for the two classes (events and non-events) were generated from distinct multivariate normal distributions.
+$$\text{Class 0:} \; \mathbf{X} \sim MVN(\mathbb{\mu_{0}, \mathbb{\Sigma_{0}}})  = MVN(\mathbf{0}, \mathbb{\Sigma_{0}})$$
+$$\text{Class 1:} \; \mathbf{X} \sim MVN(\mathbb{\mu_{1}, \mathbb{\Sigma_{1}}})  = MVN(\mathbb{\Delta}_{\mu}, \mathbb{\Sigma_{0}} - \mathbb{\Delta}_{\Sigma})$$
 * This allowed for precise control over the differences in means ($\Delta_\mu$) and covariances ($\Delta_\Sigma$) between the classes.
 * The parameters for these distributions were analytically solved to ensure the generated data would consistently have the target C-statistic of 0.85, providing a stable baseline for comparison.
 :::

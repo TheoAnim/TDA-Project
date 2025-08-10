@@ -1,0 +1,409 @@
+---
+title: "The Shape of Digits"
+subtitle: "A Bayesian Topological Data Analytic Approach to Classification of Handwritten Digits"
+authors:
+  - name: Thomas Reinke
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+    # email: thomas_reinke1@baylor.edu
+  - name: Theophilus A. Bediako
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+  - name: Daniel Lim
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+date: today
+date-format: "MMMM D, YYYY"
+format: 
+  revealjs:
+    theme: 
+      - quarto-assets/baylor-theme.scss
+    smaller: false
+    scrollable: false
+    show-slide-number: all
+    toc: false
+    toc-depth: 1
+    preview-links: true
+    slide-number: c/t
+    multiplex: false
+    embed-resources: true
+    auto-animate: true
+    #footer: "Thomas Reinke"
+bibliography: references.bibtex
+lightbox:
+  match: auto
+  effect: fade
+  desc-position: bottom
+  loop: true
+logo: "quarto-assets/baylor.png"
+license: "CC BY-NC"
+copyright: 
+  holder: Thomas Reinke
+  year: 2025
+editor: 
+  markdown: 
+    wrap: 72
+fig-width: 15
+---
+
+```{r, setup}
+#| include: false
+#| message: false
+library(quarto)
+library(knitr)
+library(tidyverse)
+library(conflicted)
+library(janitor)
+library(ggtda)
+# library(TDAvis)
+library(patchwork)
+library(gganimate)
+library(ggforce)
+library(simplextree) 
+library(gifski)
+library(magick)  
+library(ripserr)
+library(reshape2)
+# remotes::install_github("maroulaslab/BayesTDA") Use this if package ‘BayesTDA’ is not available for this version of R
+library(BayesTDA)
+library(TDAstats)
+library(mvtnorm)
+library(kableExtra)
+library(plotly)
+library(DiagrammeR)
+library(transport)
+library(TDA)
+library(RColorBrewer)
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("select", "dplyr")
+conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
+conflicted::conflicts_prefer(plotly::layout)
+knitr::opts_chunk$set(
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  echo = FALSE,
+  tidy.opts = list(width.cutoff = 100),
+  tidy = FALSE,
+  fig.align = "center"
+)
+ggplot2::theme_set(ggplot2::theme_minimal())
+ggplot2::theme_update(panel.grid.minor = ggplot2::element_blank())
+
+#------------------------------------------------------------#
+```
+
+::: {.content-hidden}
+$$
+{{< include quarto-assets/_macros.tex >}}
+$$
+:::
+
+
+```{r}
+#------------------------------------------------------------#
+### Code
+mnist <- readRDS(file = "mnist_dataset")
+
+train <- mnist$train
+test <- mnist$test
+
+train_images <- train$images  # Matrix of size 60,000 x 784
+train_labels <- as.factor(train$labels)  # Factorized labels (0-9)
+
+test_images <- test$images   # Matrix of size 10,000 x 784
+test_labels <- as.factor(test$labels)
+
+train_images <- train_images / 255
+test_images <- test_images / 255
+
+train_images_list <- lapply(1:nrow(train_images), function(i) {
+  matrix(train_images[i, ], nrow = 28) |> t()
+})
+
+test_images_list <- lapply(1:nrow(test_images), function(i) {
+  matrix(test_images[i, ], nrow = 28) |> t()
+})
+
+plot_digit <- \(image_list = train_images_list, image_index = NULL, image_df = NULL, melted = FALSE){
+  if(!melted){
+    image_df <- melt(image_list[image_index])
+    colnames(image_df) <- c("y", "x", "value")
+  }
+  ggplot(image_df, aes(x = x, y = y, fill = value)) + 
+    geom_raster() +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_reverse() + 
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none") 
+}
+
+# plot_digit(image_index = 8)
+# paste0("Label: ", train$labels[8])
+
+binarize_images <- function(images_list, threshold = 0.5) {
+  lapply(images_list, function(mat) {
+    ifelse(mat < threshold, 0, 1)
+  })
+}
+
+train_images_binarized <- binarize_images(train_images_list)
+test_images_binarized <- binarize_images(test_images_list)
+
+# plot_digit(image_index = 8) + plot_digit(train_images_binarized, image_index = 8)
+
+#------------------------------------------------------------#
+generate_pd <- function(n_points = 100, noise_variance, seed) {
+  set.seed(seed)
+  theta <- runif(n_points, 0, 2 * pi)
+  point_cloud_tbl <- tibble(x = cos(theta), y = sin(theta)) |>
+    mutate(
+      x = x + rnorm(n(), 0, sqrt(noise_variance)),
+      y = y + rnorm(n(), 0, sqrt(noise_variance))
+    )
+  homology_res <- TDAstats::calculate_homology(
+    as.matrix(point_cloud_tbl), dim = 1, threshold = 2
+  )
+  
+  as_tibble(homology_res) |>
+    filter(dimension == 1, is.finite(death)) |>
+    mutate(persistence = death - birth) |>
+    select(dimension, birth, persistence)
+}
+
+calculate_prior_data <- function(grid_points, prior_params) {
+  intensity_values <- apply(grid_points, 1, function(p) {
+    if (p["persistence"] < 0) return(0)
+    BayesTDA::Wedge_Gaussian_Mixture(
+      x = as.numeric(p),
+      weights = prior_params$weights,
+      means = prior_params$means,
+      sigmas = prior_params$sigmas
+    )
+  })
+  intensity_values[!is.finite(intensity_values)] <- 0
+  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
+}
+
+calculate_posterior_data <- function(grid_points, observed_pd, prior_params, noise_sigma, alpha, sigma_y) {
+  Dy_list <- split(observed_pd |> select(birth, persistence) |> as.matrix(), 1:nrow(observed_pd))
+  noise_params <- list(weights = 1, means = list(c(0.5, 0)), sigmas = noise_sigma)
+  
+  intensity_values <- apply(grid_points, 1, function(p) {
+    if (p["persistence"] < 0) return(0)
+    BayesTDA::postIntensityPoisson(
+      x = as.numeric(p), Dy = Dy_list, alpha = alpha,
+      weight.prior = prior_params$weights, mean.prior = prior_params$means,
+      sigma.prior = prior_params$sigmas, sigma.y = sigma_y,
+      weights.unexpected = noise_params$weights, mean.unexpected = noise_params$means,
+      sigma.unexpected = noise_params$sigmas
+    )
+  })
+  intensity_values[!is.finite(intensity_values)] <- 0
+  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
+}
+
+plot_intensity <- function(data, observed = NULL, title = "") {
+  p <- ggplot(data, aes(x = birth, y = persistence)) +
+    geom_raster(aes(fill = intensity), interpolate = TRUE) +
+    scale_fill_viridis_c(option = "plasma", name = "Intensity", limits = c(0, 1)) +
+    coord_cartesian(xlim = c(0, 2.5), ylim = c(0, 2.5), expand = FALSE) +
+    labs(x = "birth", y = "persistence", title = title) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5))
+    
+  if (!is.null(observed)) {
+    p <- p + geom_point(data = observed, color = "chartreuse3", size = 2.5, shape = 16)
+  }
+  p
+}
+
+observed_pd <- generate_pd(noise_variance = 0.001, seed = 123)
+
+eval_grid <- expand_grid(
+  birth = seq(0, 2.5, length.out = 100),
+  persistence = seq(0, 2.5, length.out = 100)
+)
+# prior_inf_params <- list(means = list(c(0.5, 1.2)), sigmas = c(.01), weights = c(1))
+# prior_uni_params <- list(means = list(c(1, 1)), sigmas = c(1), weights = c(1))
+
+# prior_inf_data <- calculate_prior_data(eval_grid, prior_inf_params)
+# prior_uni_data <- calculate_prior_data(eval_grid, prior_uni_params)
+# 
+# posterior_inf_data <- calculate_posterior_data(
+#   eval_grid, observed_pd, prior_inf_params,
+#   noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
+# )
+# posterior_uni_data <- calculate_posterior_data(
+#   eval_grid, observed_pd, prior_uni_params,
+#   noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
+# )
+# 
+# p_prior_inf <- plot_intensity(prior_inf_data, title = "Informative Prior")
+# p_prior_uni <- plot_intensity(prior_uni_data, title = "Uniform Prior")
+# p_post_inf <- plot_intensity(posterior_inf_data, observed = observed_pd, title = "Posterior (Informative)")
+# p_post_uni <- plot_intensity(posterior_uni_data, observed = observed_pd, title = "Posterior (Uniform)")
+# 
+# (p_prior_inf | p_prior_uni) / (p_post_inf | p_post_uni) +
+#   plot_layout(guides = "collect")
+#------------------------------------------------------------#
+
+#------------------------------------------------------------#
+```
+
+# Contents
+
+<!-- 1. [MNIST Overview](#sec-MNIST) -->
+<!-- 1. [Machine Learning/Classification Methods](#sec-MLMethod) -->
+<!-- 1. [Intro to TDA](#sec-TDAIntro) -->
+<!-- 1. [TDA Methodology](#sec-TDAMethod) -->
+1. [Analysis](#sec-Analysis)
+1. [Results/Future Work](#sec-Results)
+1. [References](#sec-References)
+
+# Workflow
+
+```{tikz}
+%| label: fig-workflow
+%| echo: false
+
+\usetikzlibrary{positioning, arrows.meta}
+
+\begin{tikzpicture}[
+    node distance = 1.2cm and 2cm,
+    auto,
+    every node/.style={
+        draw,
+        thick,
+        rounded corners,
+        align=center,
+        minimum height=1.2cm
+    },
+    arrow/.style={->, >=Stealth}
+]
+
+% Define nodes for the flowchart
+\node (train) {Train Data \\ 60,000 \\ 28x28};
+\node (test) [below=4.5cm of train] {Test Data \\ 10,000 \\ 28x28};
+
+\node (train1) [right=of train] {EB Set 5\%};
+\node (train2) [below=.5cm of train1] {Training Set 95\%};
+
+\node (priors) [right=of train1] {Priors, \\2/class};
+\node (OPD0) [below=.5cm of priors] {Observed PD's for 0};
+\node (PDdots) [below=0.1cm of OPD0] {$\vdots$};
+\node (OPD9) [below=.1cm of PDdots] {Observed PD's for 9};
+
+\node (update) [right=1.5cm of PDdots, draw=none, scale=2] {$\odot$};
+\node (priordots) [right=2.75cm of update] {$\vdots$};
+\node (prior0) [above=.1cm of priordots] {Uniformitive Prior for 0 \\ Relatively informitive Prior for 0};
+\node (prior9) [below=0.1cm of priordots] {Uniformitive Prior for 9 \\ Relatively informitive Prior for 9};
+
+\node (equals) [right=2.5cm of priordots, draw=none, scale=2] {=};
+
+\node (postdots) [right=1.25cm of equals] {$\vdots$};
+\node (post0) [above=.1cm of postdots] {2 Posteriors for 0};
+\node (post9) [below=.1cm of postdots] {2 Posteriors for 9};
+
+\node (testDist) [right=2.5cm of postdots] {10 Uninf Distances \\ 10 Rel Inf Distances};
+\node (testPD) [below=1.5cm of testDist] {Test PD};
+
+\node (classify) [right=.5cm of testDist] {Classify as $\mathrm{argmin}$ Distances};
+
+% Draw edges between nodes
+\draw [arrow] (train) -- (train1);
+\draw [arrow] (train) |- (train2);
+
+\draw [arrow] (train1) -- (priors);
+\draw [arrow] (priors) -| (prior0);
+
+\draw [arrow] (train2) -- (OPD0);
+\draw [arrow] (train2) -- (PDdots);
+\draw [arrow] (train2) -- (OPD9);
+
+%\draw [arrow, bend left=45] (OPD0) to (post0);
+\draw [arrow] (OPD0) -- ++(0,1cm) -- ++(2cm,0) -| (post0);
+\draw [arrow] (OPD9) -- ++(0,-1cm) -- ++(2cm,0) -| (post9);
+\draw [arrow] (prior0) -- (post0);
+\draw [arrow] (prior9) -- (post9);
+
+\draw [arrow] (post0) -- (testDist);
+\draw [arrow] (postdots) -- (testDist);
+\draw [arrow] (post9) -- (testDist);
+\draw [arrow] (testPD) -- (testDist);
+\draw [arrow] (test) -- (testPD);
+
+\draw [arrow] (testDist) -- (classify);
+%\draw [arrow, bend left] (posterior) to node [pos=0.5, above] {EB} (proj);
+
+\end{tikzpicture}
+```
+
+<!-- ```{r workflow, engine='tikz'} -->
+<!-- %{tikzpicture, node distance = 1cm, auto, every node/.style={draw, thick, rounded corners}, -->
+<!-- % Define nodes for the flowchart -->
+<!-- \begin{tikzpicture} -->
+<!-- \node (train) at (0,0) {Train Data \ 60,000 \ 28x28}; -->
+<!-- \node (labels) [below=0.5cm of train] {Digits \ 0-9}; -->
+<!-- \node (reshape) [right=2cm of train] {Reshape \ D \ 60000x784}; -->
+<!-- \node (proj) [right=2cm of reshape] {Project to \ k-dim}; -->
+<!-- \node (mu1) [below=0.5cm of proj] {mu_1}; -->
+<!-- \node (mu2) [below=0.2cm of mu1] {mu_2}; -->
+<!-- \node (muk) [below=0.2cm of mu2] {mu_k}; -->
+<!-- \node (uniform) [below=0.5cm of muk] {Uniform}; -->
+<!-- \node (posterior) [right=2cm of proj] {Posterior \ Probability}; -->
+<!-- \node (test) [below=3cm of train] {Test Data \ 10,000 \ 28x28}; -->
+<!-- \node (reshape_test) [right=2cm of test] {Reshape \ q \ 10000x784}; -->
+<!-- \node (proj_test) [right=2cm of reshape_test] {Project to \ k-dim}; -->
+<!-- \node (classify) [right=2cm of posterior] {Classify by min. distance}; -->
+<!-- \node (test_pp) [below=0.5cm of classify] {test pp}; -->
+<!-- \node (eval) [right=2cm of classify] {$\\begin{pmatrix} ? & 1 & 2 \\ 1 & 0 & 1 \\ 2 & 1 & ? \\end{pmatrix}$}; -->
+
+<!-- % Draw edges between nodes -->
+<!-- \draw [->] (train) -- (reshape); -->
+<!-- \draw [->] (labels) -- (reshape); -->
+<!-- \draw [->] (reshape) -- (proj); -->
+<!-- \draw [->] (proj) -- (posterior); -->
+<!-- \draw [->] (mu1) -- (posterior); -->
+<!-- \draw [->] (mu2) -- (posterior); -->
+<!-- \draw [->] (muk) -- (posterior); -->
+<!-- \draw [->] (uniform) -- (posterior); -->
+<!-- \draw [->] (test) -- (reshape_test); -->
+<!-- \draw [->] (reshape_test) -- (proj_test); -->
+<!-- \draw [->] (proj_test) -- (classify); -->
+<!-- \draw [->] (posterior) -- (classify); -->
+<!-- \draw [->] (classify) -- (eval); -->
+<!-- \draw [->] (test_pp) -| (eval); -->
+<!-- \draw [->] (reshape) -- (reshape_test); -->
+<!-- \draw [->, bend left] (posterior) to node {EB} (proj); -->
+
+<!-- \end{tikzpicture} -->
+<!-- ``` -->
+
+# Analysis {#sec-Analysis}
+
+# Results/Future Work {#sec-Results}
+
+# References {#sec-References}
+
+## References
+
+::: {#refs .smaller}
+:::

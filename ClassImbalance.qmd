@@ -116,18 +116,21 @@ The harms of class imbalance corrections for machine learning based prediction m
 ## Introduction {.smaller}
 
 :::{.incremental}
-* Risk prediction models are increasingly vital in healthcare, but their calibration (the reliability of their risk estimates) is critical for trustworthy clinical decisions.
+* Risk prediction models are increasingly vital in healthcare
 * Data used to train these models often suffer from class imbalance, where one class (e.g., patients with a rare disease) is much smaller than the other.
 * apply imbalance corrections (e.g., over- or under-sampling) to artificially balance the dataset.
 * However, the effect of these corrections on the calibration of modern machine learning models is not well understood.
-* This study examines the impact of various imbalance corrections on the performance—especially calibration—of several machine learning algorithms.
+   * Model calibration captures agreement between the estimated (predicted) and observed number of events
+  * Poorly calibrated model over-estimates or underestimate true risks
+  * Leading to poor treatment decisions
+* This study examines the impact of imbalance corrections on the performance—especially calibration—of several machine learning algorithms.
 :::
 
-:::{.fragment}
-- *reword, content is fine*
--  *Model calibration captures the accuracy of risk estimates, relating to the agreement between the estimated (predicted) and observed number of events*
-- *If a model is poorly calibrated, it may produce risk estimates that do not approximate a patient’s true risk well. A poorly calibrated model may produce predicted risks that consistently over- or under-estimate true risk or that are too extreme (too close to 0 or 1) or too modest (too close to event prevalence). This can lead to poor treatment decisions or to clinicians communicating false assurances to patients*
-:::
+<!-- :::{.fragment} -->
+<!-- - *reword, content is fine* -->
+<!-- -  *Model calibration captures the accuracy of risk estimates, relating to the agreement between the estimated (predicted) and observed number of events* -->
+<!-- - *If a model is poorly calibrated, it may produce risk estimates that do not approximate a patient’s true risk well. A poorly calibrated model may produce predicted risks that consistently over- or under-estimate true risk or that are too extreme (too close to 0 or 1) or too modest (too close to event prevalence). This can lead to poor treatment decisions or to clinicians communicating false assurances to patients* -->
+<!-- ::: -->
 
 :::{.notes}
 - Imbalance hurts logistic regression, see paper [@goorbergh2022harmclassimbalancecorrections]

@@ -144,48 +144,82 @@ The harms of class imbalance corrections for machine learning based prediction m
 * Focused on prediction models for dichotomous risk prediction
 * Compared prediction performance of models developed with imbalanced corrected data to those without correction 
 :::
+
 ## Data Gathering Scenarios
 
 ![](Imbalance Table 1.png)
 
-<!-- :::{.incremental} -->
-
+:::{.incremental}
 <!-- ::: -->
-
 <!-- :::{.fragment} -->
 <!-- - *Mention Validation 10x Training set* -->
 <!-- * These scenarios were created by varying -->
 <!--     * Event Fraction: Balanced (0.5), Moderately Imbalanced (0.2), and Strongly Imbalanced (0.02). -->
 <!--     * Number of Predictors: 8 or 16. -->
 <!--     * Sample Size: Half (0.5N), exact (N), and double (2N) the minimum required sample size, calculated to achieve a target statistical power. -->
-<!-- * All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85. -->
-<!-- ::: -->
+* 2000 datasets per scenario
+* All scenarios were designed to produce data with an expected concordance statistic (C-statistic) of 0.85
+:::
 
-## Data Generating Mechanism
+## Data Generating Mechanism{.smaller}
 
 :::{.incremental}
 * Data for the two classes (events and non-events) were generated from distinct multivariate normal distributions.
+:::
 
 :::{.fragment}
 $$\text{Class 0:} \; \mathbf{X} \sim MVN(\mathbb{\mu_{0}, \mathbb{\Sigma_{0}}})  = MVN(\mathbf{0}, \mathbb{\Sigma_{0}})$$
-$$\text{Class 1:} \; \mathbf{X} \sim MVN(\mathbb{\mu_{1}, \mathbb{\Sigma_{1}}})  = MVN(\mathbb{\Delta}_{\mu}, \mathbb{\Sigma_{0}} - \mathbb{\Delta}_{\Sigma})$$
-:::
-* The parameters for these distributions were analytically solved to ensure the generated data would consistently have the target C-statistic of 0.85, providing a stable baseline for comparison.
+$$
+\text{Class 1:} \; \mathbf{X} \sim MVN(\mathbb{\mu_{1}, \mathbb{\Sigma_{1}}})  = MVN(\mathbb{\Delta}_{\mu}, \mathbb{\Sigma_{0}} - \mathbb{\Delta}_{\Sigma})
+$$
+For 8 predictors, the mean and covariance structure for class 0 was:
+$$
+\mu_0 =
+\begin{bmatrix}
+0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0
+\end{bmatrix},
+\quad
+\Sigma_0 =
+\begin{bmatrix}
+1 & 0.2 & 0.2 & 0.2 & 0.2 & 0.2 & 0 & 0 \\
+0.2 & 1 & 0.2 & 0.2 & 0.2 & 0.2 & 0 & 0 \\
+0.2 & 0.2 & 1 & 0.2 & 0.2 & 0.2 & 0 & 0 \\
+0.2 & 0.2 & 0.2 & 1 & 0.2 & 0.2 & 0 & 0 \\
+0.2 & 0.2 & 0.2 & 0.2 & 1 & 0.2 & 0 & 0 \\
+0.2 & 0.2 & 0.2 & 0.2 & 0.2 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}.
+$$
 :::
 
-:::{.fragment}
-- *Use equations for mvn*
-- *Explanation of notation*
-- *2,000 datasets/scenario*
-:::
 
 ## Data Generating Mechanism
+## Data Generating Mechanism{.smaller}
 
+The mean and covariance structure for class 1 was:
+$$
+\mu_1 =
+\begin{bmatrix}
+\delta_\mu \\ \delta_\mu \\ \delta_\mu \\ \delta_\mu \\
+\delta_\mu \\ \delta_\mu \\ \delta_\mu \\ \delta_\mu
+\end{bmatrix},
+\quad
+\Sigma_1 =
+\begin{bmatrix}
+1-\delta_\Sigma & z & z & z & z & z & 0 & 0 \\
+z & 1-\delta_\Sigma & z & z & z & z & 0 & 0 \\
+z & z & 1-\delta_\Sigma & z & z & z & 0 & 0 \\
+z & z & z & 1-\delta_\Sigma & z & z & 0 & 0 \\
+z & z & z & z & 1-\delta_\Sigma & z & 0 & 0 \\
+z & z & z & z & z & 1-\delta_\Sigma & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1-\delta_\Sigma & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1-\delta_\Sigma
+\end{bmatrix}.
+$$
 :::{.fragment}
-- mean & covariance structure
+$z = .2(1 - \delta_{\Sigma})$, to ensure equivalent correlation matrices between the two classes
 :::
-
-## Data Generating Mechanism
 
 :::{.fragment}
 $$
@@ -194,6 +228,7 @@ $$
 :::
 
 :::{.fragment}
+- The parameters $\delta_{\mu}$ and $\delta_{\Sigma}$ of each scenario were selected to get a C-statistic of 0.85, providing a stable baseline for comparison.
 - *make sure to talk about concordance = ROC(AUC) in dichotomous case*
 :::
 

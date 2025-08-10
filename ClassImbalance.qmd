@@ -117,9 +117,10 @@ The harms of class imbalance corrections for machine learning based prediction m
 
 :::{.incremental}
 * Risk prediction models are increasingly vital in healthcare
+  * Can help determine an individual's risk of disease
 * Data used to train these models often suffer from class imbalance, where one class (e.g., patients with a rare disease) is much smaller than the other.
 * apply imbalance corrections (e.g., over- or under-sampling) to artificially balance the dataset.
-* However, the effect of these corrections on the calibration of modern machine learning models is not well understood.
+* However, the effect of these corrections on the calibration of modern machine learning models is not always clear
    * Model calibration captures agreement between the estimated (predicted) and observed number of events
   * Poorly calibrated model over-estimates or underestimate true risks
   * Leading to poor treatment decisions

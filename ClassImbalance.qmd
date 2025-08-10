@@ -573,7 +573,7 @@ df_recalibrated |>
   pack_rows("Scenario 4 Recalibrated", 1, 8, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 5 Recalibrated", 9, 16, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 6 Recalibrated", 17, 24, label_row_css = "font-weight: bold;") |>
-  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 10) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 8) |>
   scroll_box(width = "95%", height = "600px")
 ```
 

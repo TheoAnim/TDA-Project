@@ -217,25 +217,18 @@ z & z & z & z & z & 1-\delta_\Sigma & 0 & 0 \\
 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1-\delta_\Sigma
 \end{bmatrix}.
 $$
-:::{.fragment}
-$z = .2(1 - \delta_{\Sigma})$, to ensure equivalent correlation matrices between the two classes
-:::
 
+- $z = .2(1 - \delta_{\Sigma})$, to ensure equivalent correlation matrices between the two classes
+- The parameters $\delta_{\mu}$ and $\delta_{\Sigma}$ of each scenario were selected to get a C-statistic of 0.85, providing a stable baseline for comparison
+
+## Data Generating Mechanism{.smaller}
 :::{.fragment}
 $$
 C = \Phi \left(\sqrt{\Delta'_\mu ( \Sigma_0 + \Sigma_1)^{-1} \Delta_\mu} \right)
 $$
 :::
-
 :::{.fragment}
-- The parameters $\delta_{\mu}$ and $\delta_{\Sigma}$ of each scenario were selected to get a C-statistic of 0.85, providing a stable baseline for comparison.
 - *make sure to talk about concordance = ROC(AUC) in dichotomous case*
-:::
-
-## Data Generating Mechanism
-
-:::{.fragment}
-- *Fig 1 showing data*
 :::
 
 ## Model Development

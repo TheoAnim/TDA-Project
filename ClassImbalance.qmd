@@ -235,14 +235,13 @@ $$
 
 :::{.incremental}
 * A two-step procedure was followed for every model:
-    * Pre-process the training data with a class imbalance correction method.
+    * Pre-process the training data with a class imbalance correction method
     * Train a machine learning algorithm on the resulting data.
-* This resulted in a 5x6 full-factorial design, meaning 30 unique models (5 corrections × 6 algorithms) were developed and compared in each of the 18 scenarios.
+* Implemented a 5x6 full-factorial design to compare predictive performance 
+  * 1 control, 4 corrections and 6 machine learning algorithms
+  * 30 unique models were developed and compared in each of the 18 scenarios
 :::
 
-:::{.fragment}
-- *Shorten bullet points*
-:::
 
 ## Model Development - Imbalance Corrections
 

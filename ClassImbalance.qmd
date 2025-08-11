@@ -120,7 +120,7 @@ The harms of class imbalance corrections for machine learning based prediction m
 * Risk prediction models are increasingly vital in healthcare
   * Can help determine an individual's risk of disease
 * Data used to train these models often suffer from class imbalance, where one class (e.g., patients with a rare disease) is much smaller than the other.
-* apply imbalance corrections (e.g., over- or under-sampling) to artificially balance the dataset.
+* Apply imbalance corrections (e.g., over- or under-sampling) to artificially balance the dataset
 * However, the effect of these corrections on the calibration of modern machine learning models is not always clear
    * Model calibration captures agreement between the estimated (predicted) and observed number of events
   * Poorly calibrated model over-estimates or underestimate true risks
@@ -149,6 +149,10 @@ The harms of class imbalance corrections for machine learning based prediction m
 ## Data Gathering Scenarios
 
 ![](Imbalance Table 1.png)
+
+:::{.fragment}
+- *to kable*
+:::
 
 :::{.incremental}
 <!-- ::: -->
@@ -354,8 +358,8 @@ p_control + p_rus + p_ros + p_smote + p_senn + plot_layout(design = layout)
     * Random Forest (RF)
     * XGBoost (XG)
     * Two ensemble algorithms specifically designed to handle imbalance were included:
-        * RUSBoost (RB): A boosting algorithm that incorporates random undersampling in each iteration.
-        * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling.
+        * RUSBoost (RB): A boosting algorithm that incorporates random undersampling in each iteration
+        * EasyEnsemble (EE): A bagging-based algorithm that uses undersampling
 :::
 
 <!-- :::{.fragment} -->
@@ -373,7 +377,7 @@ p_control + p_rus + p_ros + p_smote + p_senn + plot_layout(design = layout)
 ## Simulation Methods
 
 :::{.fragment}
-* A logistic re-calibration step was also performed on all model predictions to see if post-hoc adjustments could fix any initial miscalibration.
+* A logistic re-calibration step was also performed on all model predictions to see if post-hoc adjustments could fix any initial miscalibration
 :::
 
 :::{.fragment}
@@ -443,7 +447,7 @@ $$
     * This miscalibration was consistently characterized by an over-estimation of risk
 * Discrimination:
     * The impact on discrimination was inconsistent and highly dependent on the algorithm
-    * Any observed benefits were generally small.
+    * Any observed benefits were generally small
 * Overall Performance:
     * The control models consistently had the best Brier scores
 * Re-calibration:

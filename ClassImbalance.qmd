@@ -148,11 +148,75 @@ The harms of class imbalance corrections for machine learning based prediction m
 
 ## Data Gathering Scenarios
 
-![](Imbalance Table 1.png)
+<!-- ![](Imbalance Table 1.png) -->
 
-:::{.fragment}
-- *to kable*
-:::
+
+```{r}
+scenario_df <- tribble(
+  ~scenario, ~n_pred, ~sample_size, ~event_frac, ~n_train, ~n_valid, ~delta_mu, ~delta_sigma, ~c,
+  1, 8, "0.5N", 0.50, 193, 1930, 0.6043, 0.3, 0.85,
+  2, 8, "0.5N", 0.20, 124, 1240, 0.6043, 0.3, 0.85,
+  3, 8, "0.5N", 0.02, 899, 8990, 0.6043, 0.3, 0.85,
+  4, 8, "N", 0.50, 385, 3850, 0.6043, 0.3, 0.85,
+  5, 8, "N", 0.20, 247, 2470, 0.6043, 0.3, 0.85,
+  6, 8, "N", 0.02, 1797, 17970, 0.6043, 0.3, 0.85,
+  7, 8, "2N", 0.50, 770, 7700, 0.6043, 0.3, 0.85,
+  8, 8, "2N", 0.20, 494, 4940, 0.6043, 0.3, 0.85,
+  9, 8, "2N", 0.02, 3594, 35940, 0.6043, 0.3, 0.85,
+  10, 16, "0.5N", 0.50, 193, 1930, 0.4854, 0.3, 0.85,
+  11, 16, "0.5N", 0.20, 247, 2470, 0.4854, 0.3, 0.85,
+  12, 16, "0.5N", 0.02, 1797, 17970, 0.4854, 0.3, 0.85,
+  13, 16, "N", 0.50, 385, 3850, 0.4854, 0.3, 0.85,
+  14, 16, "N", 0.20, 493, 4930, 0.4854, 0.3, 0.85,
+  15, 16, "N", 0.02, 3593, 35930, 0.4854, 0.3, 0.85,
+  16, 16, "2N", 0.50, 770, 7700, 0.4854, 0.3, 0.85,
+  17, 16, "2N", 0.20, 986, 9860, 0.4854, 0.3, 0.85,
+  18, 16, "2N", 0.02, 7186, 71860, 0.4854, 0.3, 0.85
+)
+
+table_caption <- "Summary of parameters for each of the 18 data-generating scenarios."
+
+col_names_formatted <- c(
+  "Scenario", "No. Predictors", "Sample Size", "Event Fraction",
+  "n<sub>train</sub>", "n<sub>validation</sub>", "&delta;<sub>&mu;</sub>", "&delta;<sub>&Sigma;</sub>", "C"
+)
+
+# footnote_text <- c(
+#   "- N: the minimum required sample size for a prediction model.",
+#   "- &delta;<sub>&mu;</sub>: the difference in predictor means between the classes, for all predictors.",
+#   "- &delta;<sub>&Sigma;</sub>: the difference in predictor variances between the classes, for all predictors.",
+#   "- C: the data-generating concordance statistic."
+# )
+
+scenario_df |>
+  kbl(
+    caption = table_caption,
+    booktabs = TRUE,
+    align = "c",
+    col.names = col_names_formatted,
+    escape = FALSE
+  ) |>
+  # footnote(
+  #   general = footnote_text,         
+  #   general_title = "",
+  #   footnote_as_chunk = TRUE,
+  #   escape = FALSE,
+  #   threeparttable = TRUE
+  # ) |>
+  kable_styling(
+    bootstrap_options = c("striped", "condensed", "hover"),
+    full_width = FALSE,
+    position = "center",
+    font_size = 12
+  ) |>
+  row_spec(0, bold = TRUE) |>
+  column_spec(1, width = "6em") |>
+  column_spec(2, width = "8em") |>
+  column_spec(3, width = "8em") |>
+  scroll_box(width = "95%", height = "600px")
+  
+  
+```
 
 :::{.incremental}
 <!-- ::: -->
@@ -455,24 +519,7 @@ $$
     * Couldn't fix the underlying miscalibration introduced by the imbalance corrections
 :::
 
-## Results
-
-<!-- <iframe src="https://alex-carriero.shinyapps.io/class_imbalance/" -->
-<!--   width="100%" -->
-<!--   height="600px" -->
-<!--   frameborder="0" -->
-<!--   scrolling="no" -->
-<!--   allowfullscreen> -->
-<!-- </iframe> -->
-
-<iframe src="https://iframe.ly/embed?url=https://alex-carriero.shinyapps.io/class_imbalance/&format=html" 
-        width="100%" height="600px" frameborder="0"></iframe>
-
-:::{.notes}
-- [Shiny App](https://alex-carriero.shinyapps.io/class_imbalance/)
-- *Calibration plots*
-- *Perfromance metrics*
-:::
+# [Shiny App Results](https://alex-carriero.shinyapps.io/class_imbalance)
 
 ## Results
 
@@ -558,7 +605,7 @@ df_scenarios |>
   pack_rows("Scenario 4", 1, 8, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 5", 9, 16, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 6", 17, 24, label_row_css = "font-weight: bold;") |>
-  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 8) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 14) |>
   scroll_box(width = "95%", height = "600px")
 ```
 
@@ -577,7 +624,7 @@ df_recalibrated |>
   pack_rows("Scenario 4 Recalibrated", 1, 8, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 5 Recalibrated", 9, 16, label_row_css = "font-weight: bold;") |>
   pack_rows("Scenario 6 Recalibrated", 17, 24, label_row_css = "font-weight: bold;") |>
-  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 8) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), font_size = 14) |>
   scroll_box(width = "95%", height = "600px")
 ```
 
@@ -588,23 +635,29 @@ df_recalibrated |>
 
 # MIMIC-III Data Case Study {#sec-CaseStudy} 
 
-## MIMIC-III Data Case Study{.smaller}
+## MIMIC-III Data Case Study
 
 :::{.incremental}
-* Goal: To test if the simulation findings hold true on real-world dataset.
-* Data: The MIMIC-III database was used to develop models predicting 90-day mortality for ICU patients
+* Test if the simulation findings hold true on real-world dataset
+* MIMIC-III database was used to develop models predicting 90-day mortality for ICU patients
+    * 38,597(34,098) adults in Boston, 2008-2014
     * The dataset had a event fraction of 0.17
-* Methods: Same 30 model-building pipelines from simulation applied to MIMIC-III data
+    * 13 predictors used, sample size based on C=.75
+* Same 30 model-building pipelines from simulation applied to MIMIC-III data
+
+:::
+
+:::{.notes}
+- Age, Glasgow coma score, glucose, creatinine, hematocrit, hemoglobin, potassium, sodium, white blood cell count, heart rate, mean blood pressure, respiratory rate, and temperature
+:::
+
+## MIMIC-III Data Case Study
+
+:::{.incremental}
 * Findings:
     * The case study results strongly corroborated the simulation findings
     * Every model that used an imbalance correction exhibited significant miscalibration, systematically overestimating the risk of mortality
     * These models also had worse overall performance (Brier score) compared to their uncorrected counterparts
-:::
-
-:::{.fragment}
-- *Two slides*
-- *Case study overview*
-- *Case study results*
 :::
 
 # Discussion {#sec-Discussion} 
@@ -612,15 +665,15 @@ df_recalibrated |>
 ## Discussion {.smaller}
 
 :::{.incremental}
-* This study provides strong evidence that for developing calibrated clinical prediction models, applying common imbalance corrections is often harmful
-* The primary harm is a systematic overestimation of risk, which can lead to poor clinical decisions
-    * This miscalibration is not easily fixed by post-hoc methods
 * The potential gains in discrimination from corrections don't outweigh significant cost to calibration
 * Standard ML algorithms are often surprisingly robust and produce well-calibrated models when trained directly on imbalanced data
+* Findings consistent with [@goorbergh2022harmclassimbalancecorrections]
+    * Nuance for SVM & RF for extreme imbalance
+    * Slight discrimination improvement at cost of model calibration
+* Re-calibration offered slight improvements to discrimination & calibration for SVM & RF in RUS
 * Limitations: The study was confined to low-dimensional settings
-      * Further research could explore higher dimensions
+    * Further research could explore higher dimensions
 :::
-
 
 # Conclusion {#sec-Conclusion}
 
@@ -629,6 +682,8 @@ df_recalibrated |>
 :::{.incremental}
 * Correcting for class imbalance is a widely used technique, but potential negative impact on model calibration
 * When the goal is to produce reliable and accurate risk estimates for individual patients, applying imbalance corrections may do more harm than good
+* The primary harm is a systematic overestimation of risk, which can lead to poor clinical decisions
+    * This miscalibration is not easily fixed by post-hoc methods
 * Researchers and practitioners should be cautious and prioritize model calibration over class imbalance
 :::
 

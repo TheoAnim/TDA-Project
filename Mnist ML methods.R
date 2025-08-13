@@ -45,16 +45,16 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 #----------------------------------------------------------
 #----------------------------KNN---------------------------
 #----------------------------------------------------------
-knn_trainControl <- trainControl(method = "cv",
-                               number = 5)
-train_knn <- train(
-  labels ~ .,
-  train_df,
-  method = "knn",
-  metric = "Accuracy",
-  trControl = knn_trainControl
-)
-saveRDS(train_knn, "train_knn")
+# knn_trainControl <- trainControl(method = "cv",
+#                                number = 5)
+# train_knn <- train(
+#   labels ~ .,
+#   train_df,
+#   method = "knn",
+#   metric = "Accuracy",
+#   trControl = knn_trainControl
+# )
+# saveRDS(train_knn, "train_knn")
 
 knn_train <- readRDS("train_knn")
 plot(train_knn)
@@ -154,6 +154,15 @@ plot(nn_reg_hist)
 
 nn_ridge_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
 nn_ridge_accu
+
+# | Step                  | Description                                           |
+# |-----------------------|-------------------------------------------------------|
+# | Model Initialization  | Created a sequential model with 3 dense layers        |
+# | First Dense Layer     | 256 units, ReLU activation, input shape = number of features, L2 regularization (λ = 0.001) |
+# | Second Dense Layer    | 128 units, ReLU activation, L2 regularization (λ = 0.001) |
+# | Output Layer         | 10 units, Softmax activation (multi-class classification) |
+# | Model Compilation    | Loss: categorical crossentropy, Optimizer: RMSprop, Metric: accuracy |
+# | Model Training       | 35 epochs, batch size 128, 20% validation split       |
 
 
 

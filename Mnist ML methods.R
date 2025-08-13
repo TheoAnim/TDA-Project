@@ -1,3 +1,4 @@
+library(caret)
 #--------------------------------------------------------
 #----------Distribution of training labels---------------
 #--------------------------------------------------------
@@ -15,7 +16,6 @@ ggplot(train_df, aes(labels, fill = labels))+
 #----------------------------------------------------------
 train_df_long <- train_df |>
   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
-
 ggplot(train_df_long)+
   geom_histogram(aes(intensity), bins = 30,  fill = "#2C7FB8",  color = "white", alpha = 0.8)
 
@@ -45,7 +45,6 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 #----------------------------------------------------------
 #----------------------------KNN---------------------------
 #----------------------------------------------------------
-# library(caret)
 # knn_trainControl <- trainControl(method = "cv",
 #                                number = 10)
 # # train_knn <- train(
@@ -100,8 +99,7 @@ nn_dropout_model |>
     metrics = c("accuracy")
   )
 
-#supply data
-
+#pre-process and supply data
 x_train <- array_reshape(train_images, c(60000, 784))
 x_test <- array_reshape(test_images, c(10000, 784))
 y_train <- to_categorical(train$labels, 10)
@@ -155,3 +153,65 @@ plot(nn_reg_hist)
 
 nn_reg_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
 nn_reg_accu
+
+
+
+
+#-----------------------------------------------------------------------------------
+#-----------------Neural network with ridge regularization--------------------------
+#-----------------------------------------------------------------------------------
+nn_ridge_model <- keras_model_sequential() |>
+  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
+              kernel_regularizer = regularizer_l2(l = .001)) |>
+  layer_dense(units = 128, activation = "relu", regularizer_l2(l = .001)) |>
+  layer_dense(units = 10, activation = "softmax")
+
+summary(nn_ridge_model)
+
+nn_ridge_model |> compile(
+  loss = "categorical_crossentropy",
+  optimizer = optimizer_rmsprop(),
+  metrics = c("accuracy")
+)
+
+nn_ridge_hist <-   nn_ridge_model |> fit(
+  x_train,
+  y_train,
+  epochs = 35,
+  batch_size = 128,
+  validation_split = .2
+)
+
+plot(nn_ridge_model)
+
+nn_reg_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_reg_accu
+
+
+
+#--------------------------------------------------------------------------------
+#-----------------------multinomial logistic regression--------------------------
+# multinomial logistic regression = single Dense layer with softmax
+mlogit_model <- keras_model_sequential() |>
+  layer_dense(
+    units = 10,
+    activation = "softmax",
+    input_shape = ncol(x_train)
+  )
+mlogit_model |>  compile(loss = "categorical_crossentropy",
+                         optimizer = optimizer_rmsprop(),
+                         metrics = "accuracy")
+
+mlogit_hist <- mlogit_model  |>  fit(
+  x_train,
+  y_train,
+  epochs = 35,
+  batch_size = 128,
+  validation_split = 0.2
+)
+
+plot(mlogit_hist)
+
+mlogit_acc <-  k_argmax(predict(mlogit_model, x_test)) |> accuracy_check(y_test)
+mlogit_acc
+#higher than reported in the book, I would think this comes from the normalization of features

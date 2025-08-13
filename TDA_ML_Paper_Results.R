@@ -28,7 +28,8 @@ persistent_entropy <- function(dgm) {
 }
 
 get_topological_features <- function(image_matrix) {
-  binary_image <- ifelse(image_matrix > 0.4, 1, 0)
+  # Binarize the image for cubical homology
+  # binary_image <- ifelse(image_matrix > 0.4, 1, 0)
 
   directions <- list(
     c(1, 0), c(-1, 0), c(0, 1), c(0, -1),
@@ -36,30 +37,32 @@ get_topological_features <- function(image_matrix) {
   )
 
   features <- map_dfc(directions, \(dir) {
-    dgm <- cubical(binary_image, direction = dir, dim = 1) |>
+    # Create the height filtration
+    dgm <- cubical(image_matrix, direction = dir, dim = 1) |>
       as_tibble() |>
       filter(is.finite(death))
 
     pe0 <- persistent_entropy(filter(dgm, dimension == 0))
     pe1 <- persistent_entropy(filter(dgm, dimension == 1))
 
+    col_name_pe0 <- paste0("pe0_", dir[1], "_", dir[2]) |> gsub("-", "n", x = _)
+    col_name_pe1 <- paste0("pe1_", dir[1], "_", dir[2]) |> gsub("-", "n", x = _)
+
     tibble(
-      "pe0_{dir[1]}_{dir[2]}" := pe0,
-      "pe1_{dir[1]}_{dir[2]}" := pe1
+      !!col_name_pe0 := pe0,
+      !!col_name_pe1 := pe1
     )
   })
 
   return(features)
 }
 
-
 train_indices <- 1:100
-test_indices <- 1:1000
-
+test_indices <- 1:100
 
 train_features <- future_map_dfr(
-  mnist$train$images[train_indices, , drop = FALSE],
-  ~ get_topological_features(matrix(.x, nrow = 28)),
+  train_indices,
+  ~ get_topological_features(matrix(mnist$train$images[.x, ], nrow = 28)),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
 )
@@ -76,8 +79,8 @@ model <- ranger(
 
 
 test_features <- future_map_dfr(
-  mnist$test$images[test_indices, , drop = FALSE],
-  ~ get_topological_features(matrix(.x, nrow = 28)),
+  test_indices,
+  ~ get_topological_features(matrix(mnist$test$images[.x, ], nrow = 28)),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
 )

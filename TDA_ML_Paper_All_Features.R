@@ -211,3 +211,8 @@ svm_importance <- filterVarImp(
 #------------------------------------------------------------#
 # Save imporant results
 #------------------------------------------------------------#
+
+saveRDS(train_data, "rdss/all_features_train_data.rds")
+saveRDS(test_features, "rdss/all_features_test_data.rds")
+saveRDS(rf_model, "rdss/all_features_rf_model.rds")
+saveRDS(svm_model, "rdss/all_features_svm_model.rds")

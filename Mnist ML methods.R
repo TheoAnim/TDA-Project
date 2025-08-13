@@ -45,22 +45,22 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 #----------------------------------------------------------
 #----------------------------KNN---------------------------
 #----------------------------------------------------------
-# knn_trainControl <- trainControl(method = "cv",
-#                                number = 10)
-# # train_knn <- train(
-# #   labels ~ .,
-# #   train_df,
-# #   method = "knn",
-# #   metric = "Accuracy",
-# #   trControl = knn_trainControl
-# # )
-# # saveRDS(train_knn, "train_knn")
-#
-# knn_train <- readRDS("train_knn")
-# plot(train_knn)
-#
-# knn_prediction <- predict(train_knn, newdata = test_images)
-# print(knn_prediction)
+knn_trainControl <- trainControl(method = "cv",
+                               number = 5)
+train_knn <- train(
+  labels ~ .,
+  train_df,
+  method = "knn",
+  metric = "Accuracy",
+  trControl = knn_trainControl
+)
+saveRDS(train_knn, "train_knn")
+
+knn_train <- readRDS("train_knn")
+plot(train_knn)
+
+knn_prediction <- predict(train_knn, newdata = test_images)
+print(knn_prediction)
 
 
 
@@ -127,13 +127,14 @@ nn_dropout_accu
 #-----------------------------------------------------------------------------------
 #-----------------Neural network with ridge regularization--------------------------
 #-----------------------------------------------------------------------------------
+#adds a penalty proportional to the sqaure of the weights
 nn_ridge_model <- keras_model_sequential() |>
   layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
               kernel_regularizer = regularizer_l2(l = .001)) |>
   layer_dense(units = 128, activation = "relu", regularizer_l2(l = .001)) |>
   layer_dense(units = 10, activation = "softmax")
 
-summary(nn_reg_model)
+summary(nn_ridge_model)
 
 nn_ridge_model |> compile(
   loss = "categorical_crossentropy",
@@ -151,30 +152,31 @@ nn_reg_hist <-   nn_ridge_model |> fit(
 
 plot(nn_reg_hist)
 
-nn_reg_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
-nn_reg_accu
+nn_ridge_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_ridge_accu
 
 
 
 
 #-----------------------------------------------------------------------------------
-#-----------------Neural network with ridge regularization--------------------------
+#-----------------Neural network with lasso regularization--------------------------
 #-----------------------------------------------------------------------------------
-nn_ridge_model <- keras_model_sequential() |>
+### adds a penalty proportional to the absolute value of the weights
+nn_lasso_model <- keras_model_sequential() |>
   layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-              kernel_regularizer = regularizer_l2(l = .001)) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l2(l = .001)) |>
+              kernel_regularizer = regularizer_l1(l = .001)) |>
+  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .001)) |>
   layer_dense(units = 10, activation = "softmax")
 
-summary(nn_ridge_model)
+summary(nn_lasso_model)
 
-nn_ridge_model |> compile(
+nn_lasso_model |> compile(
   loss = "categorical_crossentropy",
   optimizer = optimizer_rmsprop(),
   metrics = c("accuracy")
 )
 
-nn_ridge_hist <-   nn_ridge_model |> fit(
+nn_lasso_hist <-   nn_lasso_model |> fit(
   x_train,
   y_train,
   epochs = 35,
@@ -182,10 +184,10 @@ nn_ridge_hist <-   nn_ridge_model |> fit(
   validation_split = .2
 )
 
-plot(nn_ridge_model)
+plot(nn_lasso_hist)
 
-nn_reg_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
-nn_reg_accu
+nn_lasso_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_lasso_accu
 
 
 

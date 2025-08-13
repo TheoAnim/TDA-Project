@@ -89,6 +89,7 @@ library(DiagrammeR)
 library(transport)
 library(TDA)
 library(RColorBrewer)
+library("Rtsne")
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
@@ -270,7 +271,7 @@ eval_grid <- expand_grid(
 
 # Contents
 
-<!-- 1. [MNIST Overview](#sec-MNIST) -->
+1. [MNIST Overview](#sec-MNIST)
 <!-- 1. [Machine Learning/Classification Methods](#sec-MLMethod) -->
 <!-- 1. [Intro to TDA](#sec-TDAIntro) -->
 <!-- 1. [TDA Methodology](#sec-TDAMethod) -->
@@ -278,7 +279,68 @@ eval_grid <- expand_grid(
 1. [Results/Future Work](#sec-Results)
 1. [References](#sec-References)
 
-# Workflow
+
+# Exploratory Data Analysis
+
+
+## Distribution of training labels
+```{r}
+#--------------------------------------------------------
+#----------Distribution of training labels---------------
+#--------------------------------------------------------
+#first run the qmd file
+train_df <- train$images |> as.data.frame()
+train_df$labels <- train$labels |> as.factor()
+
+ggplot(train_df, aes(labels, fill = labels))+
+  geom_bar()+
+  labs(fill = "digit")
+
+```
+
+## Pixel intensity representation of the training set
+```{r}
+#----------------------------------------------------------
+#-----------Pixel intensity representation-----------------
+#----------------------------------------------------------
+train_df_long <- train_df |>
+  pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
+ggplot(train_df_long) +
+  geom_histogram(
+    aes(intensity),
+    bins = 30,
+    fill = "#2C7FB8",
+    color = "white",
+    alpha = 0.8
+  )
+
+```
+
+## Training data in 2D 
+```{r}
+#------------------------------------------------------------
+#----------------distribution of mnist training--------------
+#------------------------------------------------------------
+#normalized pixel values and apply t-SNE
+# tsne_results <- Rtsne(
+#   train_images,
+#   dim = 2,
+#   perplexity = 30,
+#   max_iter = 1000
+# )
+# df_tsne <- tibble(Dim1 = tsne_results$Y[, 1],
+#                   Dim2 = tsne_results$Y[, 2],
+#                   digit = train_df$labels)
+#
+# saveRDS(df_tsne, "df_tsne")
+df_tsne <- readRDS("df_tsne")
+ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
+  geom_point(alpha = .9)
+```
+
+
+
+# TDA Workflow
 
 ```{tikz}
 %| echo: false
@@ -355,7 +417,28 @@ eval_grid <- expand_grid(
 \end{tikzpicture}
 ```
 
+
+Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification
+
+
+# Machine Learning Methods
+
+## Multinomial logistic regression
+
+## Neural networks
+
+We use feedforward neural network which has the following structure
+
+- input layer: consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
+- hidden layer: one or more hidden layers placed between the input and output layers,  responsible for capturing complex patterns
+- output layer: final output of the network. Here, the number of neurons represents the number of digits
+
+## NN with regularization
+
+d
 # Analysis {#sec-Analysis}
+
+
 
 # Results/Future Work {#sec-Results}
 

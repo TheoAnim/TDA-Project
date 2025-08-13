@@ -435,7 +435,16 @@ We use feedforward neural network which has the following structure
 
 ## NN with regularization
 
-d
+:::{.fragement}
+- Depending on a mode, a network can have more weights than the size of training data. This leads to overfitting.
+- We considered two approaches to overfitting
+  - Dropout learning: think of RF, randomly remoces a fraction of the units in a layer during model fitting
+  - Regularization: impose penalties on parameters like lasso, ridge etc
+:::
+
+
+
+
 # Analysis {#sec-Analysis}
 
 

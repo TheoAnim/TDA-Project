@@ -79,10 +79,10 @@ get_all_topological_features <- function(image_matrix) {
   bind_cols(grayscale_features, height_features, dilation_features)
 }
 
-# train_indices <- 1:500
-# test_indices <- 1:1000
-train_indices <- 1:60000
-test_indices <- 1:10000
+train_indices <- 1:500
+test_indices <- 1:1000
+# train_indices <- 1:60000
+# test_indices <- 1:10000
 
 train_features <- future_map_dfr(
   train_indices,
@@ -102,14 +102,14 @@ registerDoParallel(cl)
 
 train_control <- trainControl(
   method = "repeatedcv",
-  number = 10, # 10 folds
-  repeats = 1, # 3 repetitions
+  number = 10,
+  repeats = 1,
   summaryFunction = multiClassSummary
 )
 
-# 1. Tune and Train Random Forest
+
 rf_grid <- expand.grid(
-  .mtry = c(2, 4, 8), # Number of variables to sample
+  .mtry = c(2, 4, 8),
   .splitrule = "gini",
   .min.node.size = 1
 )
@@ -125,29 +125,23 @@ rf_model <- train(
 
 print(rf_model)
 
-# 2. Tune and Train Support Vector Machine (SVM)
 svm_model <- train(
   label ~ .,
   data = train_data,
-  method = "svmRadial", # SVM with Radial Basis Function Kernel
+  method = "svmRadial",
   trControl = train_control,
-  preProcess = c("center", "scale"), # Important for SVMs
-  tuneLength = 5, # Let caret choose 5 values for the cost parameter
+  preProcess = c("center", "scale"),
+  tuneLength = 5,
   metric = "Accuracy"
 )
 
 print(svm_model)
 
-
-# --- Model Comparison and Evaluation ---
-
-# Compare model performance based on cross-validation
 model_comparison <- resamples(list(RandomForest = rf_model, SVM = svm_model))
 summary(model_comparison)
 dotplot(model_comparison)
 stopCluster(cl)
 
-# --- Final Evaluation on Test Set ---
 plan(multisession, workers = availableCores() - 1)
 
 test_features <- future_map_dfr(
@@ -157,7 +151,6 @@ test_features <- future_map_dfr(
   .options = furrr_options(seed = TRUE, packages = c("tidyverse", "ripserr", "imager"))
 )
 
-# Predict using the best model (e.g., Random Forest)
 predictions <- predict(rf_model, newdata = test_features)
 
 results <- tibble(
@@ -165,7 +158,6 @@ results <- tibble(
   predicted_label = predictions
 )
 
-# Calculate and print the final accuracy
 final_accuracy <- mean(results$true_label == results$predicted_label, na.rm = TRUE)
 print(paste("Final Test Set Accuracy (Random Forest):", percent(final_accuracy, accuracy = 0.1)))
 

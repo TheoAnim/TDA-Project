@@ -148,15 +148,26 @@ confu_mat <- function(pred_classes, test_labels){
   )
 }
 ## ggplot function to represent the heatmap
-cm_ggplot <- function(conf_mat, type){
+cm_ggplot <- function(conf_mat, type) {
   cm_df <- as.data.frame(conf_mat$table)
-  ggplot(cm_df, aes(Prediction, Reference, fill = Freq))+
-    geom_tile(color = "white")+
-    geom_text(aes(label = Freq), color = "black", size = 4)+
-    scale_fill_gradient(low = "white", high = "steelblue")+
-    labs(title = paste("Confusion matrix heatmap - ", type))
+  ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
+    geom_tile(color = "gray50") +
+    geom_text(aes(label = Freq), color = "red", size = 4) +
+    #scale_fill_gradient(low = "white", high = "steelblue") +
+    scale_fill_viridis_c(option = "magma", direction = -1) +
+    theme_minimal(base_size = 12) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+      axis.text.y = element_text(face = "bold"),
+      panel.grid = element_blank()
+    )+
+    labs(
+      # title = paste("Confusion matrix heatmap - ", type),
+      x = "Predicted label",
+      y = "True label",
+      fill = "Count"
+    )
 }
-
 # nn_dropout_conf_mat <- confu_mat(nn_drop_pred_class, test_labels)
 # saveRDS(nn_dropout_conf_mat, "nn_dropout_conf_mat")
 nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
@@ -183,7 +194,7 @@ nn_ridge_model |> compile(
   metrics = c("accuracy")
 )
 
-nn_reg_hist <- nn_ridge_model |> fit(
+nn_ridge_hist <- nn_ridge_model |> fit(
   x_train,
   y_train,
   epochs = 30,
@@ -210,7 +221,7 @@ nn_ridge_accu
 nn_ridge_conf_mat <- confu_mat(nn_ridge_pred_class, test_labels)
 # saveRDS(nn_ridge_conf_mat, "nn_ridge_conf_mat")
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
-cm_ggplot(nn_ridge_conf_mat, type = "nn_dropout")
+cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
 
 
 #-----------------------------------------------------------------------------------
@@ -243,8 +254,17 @@ nn_lasso_hist <- nn_lasso_model |> fit(
 
 plot(nn_lasso_hist)
 
-nn_lasso_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_lasso_pred_class <- k_argmax(predict(nn_lasso_model, x_test)) 
+nn_lasso_accu <- accuracy_check(nn_lasso_pred_class, y_test)
 nn_lasso_accu
+
+#-----------NN lasso confusion matrix------------------------
+nn_lasso_conf_mat <- confu_mat(nn_lasso_pred_class, test_labels)
+#saveRDS(nn_lasso_conf_mat, "nn_lasso_conf_mat")
+nn_lasso_conf_mat <- readRDS("nn_ridge_conf_mat")
+cm_ggplot(nn_lasso_conf_mat, type = "nn_lasso")
+
+
 
 #--------------------------------------------------------------------------------
 #-----------------------multinomial logistic regression--------------------------
@@ -271,6 +291,14 @@ mlogit_hist <- mlogit_model |> fit(
 
 plot(mlogit_hist)
 
-mlogit_acc <- k_argmax(predict(mlogit_model, x_test)) |> accuracy_check(y_test)
+mlogit_pred_classes <-  k_argmax(predict(mlogit_model, x_test)) 
+mlogit_acc <- accuracy_check(mlogit_pred_classes, y_test)
 mlogit_acc
 # higher than reported in the book, I would think this comes from the normalization of features
+
+#-----------NN multinomial confusion matrix------------------------
+mlogit_conf_mat <- confu_mat(mlogit_pred_classes, test_labels)
+# saveRDS(mlogit_conf_mat, "mlogit_conf_mat")
+mlogit_conf_mat <- readRDS("mlogit_conf_mat")
+cm_ggplot(mlogit_conf_mat, type = "mlogit")
+

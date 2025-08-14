@@ -283,7 +283,7 @@ Feedforward neural network with structure:
 :::
 
 :::{.incremental}
-- Input layer: Consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
+- Input layer: Consists of neurons that receives the input data. Each neuron in the input layer represents a feature of the input data
 - Hidden layer: One or more hidden layers placed between the input and output layers, responsible for capturing complex patterns
 - Output layer: Final output of the network; Number of neurons represents the number of digits
 :::
@@ -450,7 +450,7 @@ ml_results |>
   kable(digits = 4)
 ```
 
-## Confusion matrix Heatmap - NN dropout
+## Confusion Matrix Heatmap - NN dropout
 ```{r, fig.dim=c(10,6)}
 ## ggplot function for confusion matrix heatmap
 cm_ggplot <- function(conf_mat, type) {
@@ -467,7 +467,7 @@ cm_ggplot <- function(conf_mat, type) {
     panel.grid = element_blank()
   )+
     labs(
-      title = paste("Confusion matrix heatmap - ", type),
+     # title = paste("Confusion matrix heatmap - ", type),
       x = "Predicted label",
       y = "True label",
       fill = "Count"
@@ -503,7 +503,7 @@ as.data.frame.matrix(conf_matrix_nn_dropout) %>%
   )
 ```
 
-## Confusion matrix - NN ridge
+## Confusion Matrix Heatmap - NN ridge
 ```{r, fig.dim=c(10,6)}
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
 # cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
@@ -535,6 +535,13 @@ as.data.frame.matrix(conf_matrix_nn_ridge) %>%
     axis.text.y = element_text(face = "bold"),
     panel.grid = element_blank()
   )
+```
+
+
+## Confusion Matrix Heatmap - Multinomial 
+```{r,  fig.dim=c(10,6)}
+mlogit_conf_mat <- readRDS("mlogit_conf_mat")
+cm_ggplot(mlogit_conf_mat, type = "mlogit")
 ```
 
 ## Proposed Method Analysis

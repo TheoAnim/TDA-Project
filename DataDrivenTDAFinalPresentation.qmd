@@ -244,6 +244,7 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
   geom_point(alpha = .9)
 ```
 
+We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the data in 2D.(see  details ![here](https://rpubs.com/TusVasMit/T-SNEExploration))
 
 
 # TDA Workflow

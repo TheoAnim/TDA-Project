@@ -451,10 +451,13 @@ Based on framework by [@Maroulas2020-sp]
 :::{.notes}
 - images 28x28
 - 60,000 train PDs made
-- one uniform prior for all 10 digits which is a uniform distribution over the persistence diagram spacei(\theta) = \sum_\limits{j = 1}^J \omega_j \mathcal{N}(\theta | \mu_j, \Sigma_j)$
+- one uniform prior for all 10 digits which is a uniform distribution over the persistence diagram space $\pi(\theta) = \sum_\limits{j = 1}^J \omega_j \mathcal{N}(\theta | \mu_j, \Sigma_j)$
     - J = 1, $\omega = 1$
     - mean vector $[.5, .5]^\top$
     - covariance is $\Sigma\_1 = 1 \cdot I\_2 = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}$
+- 20 posteriors, 10 for dim0, 10 for dim1
+- 10k test PDs
+- 100k distances for dim0, 100k for dim1
 :::
 
 # Analysis {#sec-Analysis}
@@ -696,8 +699,9 @@ proposed_accuracy <- multi_metrics(results_for_metrics, truth = true_label, esti
 # saveRDS(ml_results, "ml_results")
 
 ml_results <- readRDS("ml_results") #still a tibble so easy to edit
-
-ml_results |> 
+ml_results <- ml_results %>%
+  mutate(method = str_replace(method, "lasso no", "lasso nn"))
+ml_results |>
   add_row(method = "proposed", accuracy = proposed_accuracy) |>
   kable(digits = 4)
 ```
@@ -709,12 +713,22 @@ Extension of [@DBLP:journals/corr/abs-1910-08345]
 ## Filtering {.smaller}
 
 :::{.incremental}
-- Grayscale: The most natural filtration, using the image's original pixel intensities directly.  Pixels are included in the complex as their intensity value passes a growing threshold.
-- Height: Inspired by Morse theory, this filtration assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle.  Your code uses 8 different directions to capture features from multiple perspectives.
-- Radial: Assigns a value to each pixel based on its distance from a chosen center point. Your code uses 9 different centers to capture features originating from various locations. 
-- Dilation: Assigns each pixel a value corresponding to its shortest distance to a foreground (value=1) pixel. This has the effect of "growing" or "dilating" the digit.
-- Erosion: The inverse of dilation. It's achieved by applying the dilation filtration to the inverted image.  This "shrinks" or "erodes" the digit.
-- Density: Assigns each pixel a value based on the number of foreground neighbors within a given radius. Your code uses radii of 2, 4, and 6 to capture line thickness at different scales. 
+- Grayscale: Uses the image's original pixel intensities directly.  Pixels are included in the complex as their intensity value passes a growing threshold
+- Height: Assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle
+- Radial: Assigns a value to each pixel based on its distance from a chosen center point
+- Dilation: Assigns each pixel a value corresponding to its shortest distance to a foreground (value=1) pixel
+    - This has the effect of "growing" or "dilating" the digit
+- Erosion: Inverse of dilation
+    - Dilation of the inverted image 
+    - This "shrinks" or "erodes" the digit
+- Density: Assigns each pixel a value based on the number of foreground neighbors within a given radius
+    - Combination of dilation & erosion
+:::
+
+:::{.notes}
+- height: 8 heights, each corner and edge
+- radial: 9 chosen
+- dilation, erosion, density: multiple radii chosen, 2,4,6
 :::
 
 ## Filtering 
@@ -769,7 +783,7 @@ p_density <- plot_filtration(density_filt, "Density (r=3)")
 (p_radial_c + p_radial_b + p_density)
 ```
 
-## Analysis
+## Analysis: TDA+ML Performance
 
 ```{r loadallfeatures}
 all_features_train_data <- readRDS("rdss/all_features_train_data.rds")
@@ -841,7 +855,7 @@ ggplot(tidy_comparison, aes(x = value, y = Model, color = Model)) +
     * *Formula*: $TP / (TP + TN + FP + FN)$
 :::
 
-## Analysis
+## Analysis: TDA+ML Confusion Matrix
 
 ```{r allfeaturesheatmap, fig.dim=c(10,6)}
 test_indices <- 1:10000
@@ -889,7 +903,11 @@ as.data.frame.matrix(conf_matrix_tda_full) %>%
 # print(paste("Final Test Set Accuracy (Random Forest):", scales::percent(final_accuracy, accuracy = 0.1)))
 ```
 
-## Analysis
+:::{.notes}
+- accuracy on 22 features rbf-svm: 93.1%
+:::
+
+## Analysis: TDA+ML Variable Importance
 
 ```{r varimportance, fig.dim=c(10,6)}
 rf_model_importance <- varImp(all_features_rf_model, scale = TRUE)
@@ -960,9 +978,33 @@ rf_plot + svm_plot +
 
 ```
 
-# Results/Future Work {#sec-Results}
+:::{.notes}
+- Persistent Entropy summarizes complexity of diagram
+    - $PE(D) = - \sum_\limits{i=1}^n \frac{l_i}{L(D)}\log\left(\frac{l_i}{L(D)}\right)$
+    - $D = \{(b_i, d_i)\}^n_{i=1}$ persistence diagram(barcode)
+    - $l_i = d_i - b_i$
+    - $L(D) = \sum_{i=1}^n l_i$
+- Amplitude is distance to distance to empty diagram
+    - Waserstein $L_p$ nrom of the vector of feature lifetimes
+    - Bottleneck: max liftime among all features in diagram
+    - Kernel based - transform to betti curve, persistence landscape, heat kernel, then take $L_1$ or $L_2$ norm
+:::
 
-## ML + TDA Results
+# Future Work {#sec-Results}
+
+## Future Work
+
+:::{.incremental}
+- Proposed Method
+    - Use various distance metrics: entropy & amplitude
+    - $\lambda$ to weight dimensional distance
+    - Model different complex/filter as bayes PPP
+- TDA + ML
+    - Use other ML methods
+    - Use finer tuning on paramters
+    - Expand TDA features
+    - Feature selection
+:::
 
 # References {#sec-References}
 

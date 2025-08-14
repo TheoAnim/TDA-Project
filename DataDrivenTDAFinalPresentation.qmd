@@ -94,10 +94,12 @@ library(keras)
 library(furrr)
 library(yardstick)
 library(caret)
+library(imager)
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
 conflicted::conflicts_prefer(plotly::layout)
+conflicts_prefer(magrittr::set_names)
 knitr::opts_chunk$set(
   comment = "#>",
   message = FALSE,
@@ -654,7 +656,68 @@ multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_labe
 
 # TDA + ML {#sec-TDAML}
 
-## About Filtering
+## Filtering {.smaller}
+
+:::{.incremental}
+- Grayscale: The most natural filtration, using the image's original pixel intensities directly.  Pixels are included in the complex as their intensity value passes a growing threshold.
+- Height: Inspired by Morse theory, this filtration assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle.  Your code uses 8 different directions to capture features from multiple perspectives.
+- Radial: Assigns a value to each pixel based on its distance from a chosen center point. Your code uses 9 different centers to capture features originating from various locations. 
+- Dilation: Assigns each pixel a value corresponding to its shortest distance to a foreground (value=1) pixel. This has the effect of "growing" or "dilating" the digit.
+- Erosion: The inverse of dilation. It's achieved by applying the dilation filtration to the inverted image.  This "shrinks" or "erodes" the digit.
+- Density: Assigns each pixel a value based on the number of foreground neighbors within a given radius. Your code uses radii of 2, 4, and 6 to capture line thickness at different scales. 
+:::
+
+## Filtering 
+
+```{r filtrations, fig.dim=c(10,6)}
+image_index <- which(mnist$train$labels == 8)[100]
+image_matrix <- matrix(mnist$train$images[image_index, ], nrow = 28, byrow = TRUE)
+
+binary_image <- ifelse(image_matrix > 0.4, 1, 0)
+img_c <- as.cimg(binary_image)
+img_c_inv <- as.cimg(1 - binary_image)
+
+coords <- as.matrix(expand.grid(y = 1:28, x = 1:28))
+
+height_filt_td <- matrix(coords %*% c(0, 1), nrow = 28, byrow = TRUE) * binary_image
+height_filt_lr <- matrix(coords %*% c(1, 0), nrow = 28, byrow = TRUE) * binary_image
+
+radial_filt_c <- matrix(sqrt(rowSums(sweep(coords, 2, c(14, 14), "-")^2)), nrow = 28, byrow = TRUE) * binary_image
+radial_filt_b <- matrix(sqrt(rowSums(sweep(coords, 2, c(14, 28), "-")^2)), nrow = 28, byrow = TRUE) * binary_image
+
+dilation_filt <- as.matrix(distance_transform(img_c, 1))
+erosion_filt <- as.matrix(distance_transform(img_c_inv, 1))
+density_filt <- as.matrix(boxblur(img_c, 3))
+
+plot_filtration <- function(data_matrix, title) {
+  as.data.frame(data_matrix) |>
+    mutate(y = row_number()) |>
+    pivot_longer(-y, names_to = "x", values_to = "value") |>
+    mutate(x = as.integer(gsub("V", "", x))) |>
+    ggplot(aes(x = x, y = y, fill = value)) +
+    geom_raster() +
+    scale_y_reverse() +
+    coord_equal() +
+    scale_fill_viridis_c(option = "magma") +
+    theme_void() +
+    labs(title = title) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"), legend.position = "none")
+}
+
+p_orig <- plot_filtration(image_matrix, "Original Grayscale")
+p_bin <- plot_filtration(binary_image, "Binarized")
+p_height_td <- plot_filtration(height_filt_td, "Height (Top-Down)")
+p_height_lr <- plot_filtration(height_filt_lr, "Height (Left-Right)")
+p_radial_c <- plot_filtration(radial_filt_c, "Radial (Center)")
+p_radial_b <- plot_filtration(radial_filt_b, "Radial (Bottom)")
+p_dilation <- plot_filtration(dilation_filt, "Dilation")
+p_erosion <- plot_filtration(erosion_filt, "Erosion")
+p_density <- plot_filtration(density_filt, "Density (r=3)")
+
+(p_orig + p_bin + p_dilation) /
+(p_height_td + p_height_lr + p_erosion) /
+(p_radial_c + p_radial_b + p_density)
+```
 
 ## Analysis
 

@@ -448,6 +448,27 @@ ml_results |>
   kable(digits = 4)
 ```
 
+## Confusion matrix Heatmap - NN dropout
+```{r}
+## ggplot function to represent the heatmap
+cm_ggplot <- function(conf_mat, type) {
+  cm_df <- as.data.frame(conf_mat$table)
+  ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = Freq), color = "black", size = 4) +
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    labs(
+      title = paste("Confusion matrix heatmap - ", type),
+      x = "Predicted label",
+      y = "True label",
+      fill = "Count"
+    )
+}
+nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
+cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
+
+```
+
 ## Proposed Method Analysis
 
 ```{r post_digit_plot0, fig.dim=c(10,6)}

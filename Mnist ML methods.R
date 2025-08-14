@@ -136,9 +136,19 @@ plot(nn_dropout_hist)
 accuracy_check <- function(pred, test_labels) {
   mean(to_categorical(drop(as.numeric(pred)), 10) == drop(test_labels))
 }
-
-nn_dropout_accu <- k_argmax(predict(nn_dropout_model, x_test)) |> accuracy_check(y_test)
+nn_drop_pred_class <- k_argmax(predict(nn_dropout_model, x_test))
+nn_dropout_accu <- accuracy_check(nn_drop_pred_class, y_test)
 nn_dropout_accu
+
+#### function to get confusion matrix
+confu_mat <- function(predicted_class, test_labels){
+  confusionMatrix(
+    factor(drop(as.numeric(nn_drop_pred_class)), levels = 0:9),
+    drop(test_labels)
+  )
+}
+
+
 
 #-----------------------------------------------------------------------------------
 #-----------------Neural network with ridge regularization--------------------------

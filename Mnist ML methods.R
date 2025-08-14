@@ -63,7 +63,7 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 
 # knn_train <- readRDS("train_knn")
 # plot(train_knn)
-# 
+#
 # knn_prediction <- predict(train_knn, newdata = test_images)
 # print(knn_prediction)
 
@@ -80,10 +80,11 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 #----------------------------A multilayer Network----------
 #----------------------------------------------------------
 library(keras)
+library(reticulate)
 
 ###### Neural network with dropout regularization
 nn_dropout_model <- keras_model_sequential()
-## network architecture with regularization
+# ## network architecture with regularization
 nn_dropout_model |>
   layer_dense(
     units = 256, activation = "relu",
@@ -93,6 +94,19 @@ nn_dropout_model |>
   layer_dense(units = 128, activation = "relu") |>
   layer_dropout(rate = .3) |>
   layer_dense(units = 10, activation = "softmax")
+
+# nn_dropout_model <- keras_model_sequential(layers = list(
+#   layer_dense(
+#     units = 256,
+#     activation = "relu",
+#     input_shape = c(784)
+#   ),
+#   layer_dropout(rate = 0.4),
+#   layer_dense(units = 128, activation = "relu"),
+#   layer_dropout(rate = 0.3),
+#   layer_dense(units = 10, activation = "softmax")
+# ))
+
 summary(nn_dropout_model)
 
 # fully connected(dense) feedforward neural network
@@ -119,13 +133,13 @@ x_test <- array_reshape(test_images, c(10000, 784))
 y_train <- to_categorical(train$labels, 10)
 y_test <- to_categorical(test$labels, 10)
 nn_dropout_hist <- nn_dropout_model |>
-    fit(
-      x_train,
-      y_train,
-      epochs = 30,
-      batch_size = 128,
-      validation_split = .2
-    )
+  fit(
+    x_train,
+    y_train,
+    epochs = 30,
+    batch_size = 128,
+    validation_split = .2
+  )
 
 plot(nn_dropout_hist)
 
@@ -141,17 +155,14 @@ nn_dropout_accu
 #-----------------------------------------------------------------------------------
 # adds a penalty proportional to the sqaure of the weights
 nn_ridge_model <- keras_model_sequential() |>
-<<<<<<< HEAD
-  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-              kernel_regularizer = regularizer_l2(l = .01)) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
-=======
+  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
+  #             kernel_regularizer = regularizer_l2(l = .01)) |>
+  # layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
     kernel_regularizer = regularizer_l2(l = .001)
   ) |>
   layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
->>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
   layer_dense(units = 10, activation = "softmax")
 
 summary(nn_ridge_model)
@@ -162,11 +173,7 @@ nn_ridge_model |> compile(
   metrics = c("accuracy")
 )
 
-<<<<<<< HEAD
-nn_ridge_hist <-   nn_ridge_model |> fit(
-=======
 nn_reg_hist <- nn_ridge_model |> fit(
->>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
   x_train,
   y_train,
   epochs = 30,
@@ -194,17 +201,14 @@ nn_ridge_accu
 #-----------------------------------------------------------------------------------
 ### adds a penalty proportional to the absolute value of the weights
 nn_lasso_model <- keras_model_sequential() |>
-<<<<<<< HEAD
-  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-              kernel_regularizer = regularizer_l1(l = .01)) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
-=======
+  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
+  #             kernel_regularizer = regularizer_l1(l = .01)) |>
+  # layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
     kernel_regularizer = regularizer_l1(l = .001)
   ) |>
   layer_dense(units = 128, activation = "relu", regularizer_l1(l = .001)) |>
->>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
   layer_dense(units = 10, activation = "softmax")
 
 summary(nn_lasso_model)

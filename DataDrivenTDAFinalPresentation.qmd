@@ -346,7 +346,7 @@ Feedforward neural network with structure:
 
 # Proposed Methodology {#sec-PropMethod}
 
-## TDA Workflow
+## TDA Workflow 
 
 ```{tikz}
 %| echo: false
@@ -428,6 +428,8 @@ Feedforward neural network with structure:
     
 \end{tikzpicture}
 ```
+
+Based on framework by [@Maroulas2020-sp]
 
 # Analysis {#sec-Analysis}
 
@@ -675,6 +677,8 @@ ml_results |>
 ```
 
 # TDA + ML {#sec-TDAML}
+
+Extension of [@DBLP:journals/corr/abs-1910-08345]
 
 ## Filtering {.smaller}
 
@@ -931,8 +935,6 @@ rf_plot + svm_plot +
 ```
 
 # Results/Future Work {#sec-Results}
-
-
 
 ## ML + TDA Results
 

@@ -301,7 +301,7 @@ Feedforward neural network with structure:
 ## NN with regularization
 
 :::{.incremental}
-- Depending on model, \# network weights > size of training data
+- Depending on model, number of network weights > size of training data
     - This leads to overfitting
 - We considered two approaches to overfitting:
   - Dropout learning: Like RF, randomly removes fraction of units in layer during model fitting
@@ -462,160 +462,79 @@ Based on framework by [@Maroulas2020-sp]
 
 # Analysis {#sec-Analysis}
 
-## Confusion Matrix Heatmap - NN dropout
-```{r, fig.dim=c(10,6)}
-## ggplot function for confusion matrix heatmap
-cm_ggplot <- function(conf_mat, type) {
-  cm_df <- as.data.frame(conf_mat$table)
-  ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
-    geom_tile(color = "gray50") +
-    geom_text(aes(label = Freq), color = "red", size = 4) +
-    #scale_fill_gradient(low = "white", high = "steelblue") +
-    scale_fill_viridis_c(option = "magma", direction = -1) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid = element_blank()
-  )+
-    labs(
-     # title = paste("Confusion matrix heatmap - ", type),
-      x = "Predicted label",
-      y = "True label",
-      fill = "Count"
-    ) 
-}
+## ML Model Performance
+
+```{r mlmodelperf, fig.dim=c(10,6)}
+# --- Load Data ---
 nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
-# cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
-conf_matrix_nn_dropout <- nn_dropout_conf_mat$table
-as.data.frame.matrix(conf_matrix_nn_dropout) %>%
-  mutate(true_label = fct_rev(rownames(.))) |>
-  pivot_longer(
-    cols = -true_label,
-    names_to = "predicted_label",
-    values_to = "count"
-  ) |>
-  mutate(text_color = if_else(count < 450, "black", "white")) |>
-  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
-  geom_tile(color = "gray50", linewidth = 0.5) +
-  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
-  scale_fill_viridis_c(option = "magma", direction = -1) +
-  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
-  coord_fixed() +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "Predicted Label",
-    y = "True Label",
-    fill = "Count"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid = element_blank()
-  )
-```
-
-## Confusion Matrix Heatmap - NN ridge
-```{r, fig.dim=c(10,6)}
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
-# cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
-conf_matrix_nn_ridge <- nn_ridge_conf_mat$table
-as.data.frame.matrix(conf_matrix_nn_ridge) %>%
-  mutate(true_label = fct_rev(rownames(.))) |>
-  pivot_longer(
-    cols = -true_label,
-    names_to = "predicted_label",
-    values_to = "count"
-  ) |>
-  mutate(text_color = if_else(count < 450, "black", "white")) |>
-  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
-  geom_tile(color = "gray50", linewidth = 0.5) +
-  
-  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
-  scale_fill_viridis_c(option = "magma", direction = -1) +
-  
-  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
-  coord_fixed() +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "Predicted Label",
-    y = "True Label",
-    fill = "Count"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid = element_blank()
-  )
-```
-
-## Confusion Matrix Heatmap - NN lasso
-```{r, fig.dim=c(10,6)}
 nn_lasso_conf_mat <- readRDS("nn_lasso_conf_mat")
-# cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
-conf_matrix_nn_lasso <- nn_lasso_conf_mat$table
-as.data.frame.matrix(conf_matrix_nn_lasso) %>%
-  mutate(true_label = fct_rev(rownames(.))) |>
-  pivot_longer(
-    cols = -true_label,
-    names_to = "predicted_label",
-    values_to = "count"
-  ) |>
-  mutate(text_color = if_else(count < 450, "black", "white")) |>
-  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
-  geom_tile(color = "gray50", linewidth = 0.5) +
-  
-  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
-  scale_fill_viridis_c(option = "magma", direction = -1) +
-  
-  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
-  coord_fixed() +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "Predicted Label",
-    y = "True Label",
-    fill = "Count"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid = element_blank()
-  )
-```
-
-
-## Confusion Matrix Heatmap - Multinomial 
-```{r,  fig.dim=c(10,6)}
 mlogit_conf_mat <- readRDS("mlogit_conf_mat")
-# cm_ggplot(mlogit_conf_mat, type = "mlogit")
-conf_matrix_mlogit <- mlogit_conf_mat$table
-as.data.frame.matrix(conf_matrix_mlogit) %>%
+
+# --- Prepare data frames for all plots ---
+df_dropout <- as.data.frame.matrix(nn_dropout_conf_mat$table) %>%
   mutate(true_label = fct_rev(rownames(.))) |>
-  pivot_longer(
-    cols = -true_label,
-    names_to = "predicted_label",
-    values_to = "count"
-  ) |>
-  mutate(text_color = if_else(count < 450, "black", "white")) |>
-  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
-  geom_tile(color = "gray50", linewidth = 0.5) +
-  
-  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
-  scale_fill_viridis_c(option = "magma", direction = -1) +
-  
-  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
-  coord_fixed() +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "Predicted Label",
-    y = "True Label",
-    fill = "Count"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid = element_blank()
-  )
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_ridge <- as.data.frame.matrix(nn_ridge_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_lasso <- as.data.frame.matrix(nn_lasso_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_mlogit <- as.data.frame.matrix(mlogit_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+# --- Determine the global scale limits for the fill color ---
+global_limits <- range(
+  bind_rows(df_dropout, df_ridge, df_lasso, df_mlogit) |> pull(count)
+)
+
+# --- Define a plotting function to reduce code repetition ---
+create_heatmap <- function(data, title, limits) {
+  data |>
+    mutate(text_color = if_else(count < (0.6 * max(limits)), "black", "white")) |>
+    ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+    geom_tile(color = "gray50", linewidth = 0.5) +
+    geom_text(aes(label = count, color = text_color), size = 2) +
+    scale_fill_viridis_c(
+      option = "magma",
+      direction = -1,
+      limits = limits # Apply global limits here
+    ) +
+    scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+    coord_fixed() +
+    theme_minimal(base_size = 12) +
+    labs(
+      x = "Predicted Label",
+      y = "True Label",
+      fill = "Count",
+      title = title
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+      axis.text.y = element_text(face = "bold"),
+      panel.grid = element_blank()
+    )
+}
+
+# --- Create each plot using the function ---
+p_dropout <- create_heatmap(df_dropout, "Neural Net (Dropout)", global_limits)
+p_ridge <- create_heatmap(df_ridge, "Neural Net (Ridge)", global_limits)
+p_lasso <- create_heatmap(df_lasso, "Neural Net (Lasso)", global_limits)
+p_mlogit <- create_heatmap(df_mlogit, "Multinomial Logistic", global_limits)
+
+
+# --- Combine Plots with Patchwork, collecting guides ---
+(p_dropout + p_ridge) / (p_lasso + p_mlogit) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold"))
+  ) &
+  theme(legend.position = "none")
+
 ```
 
 ## Proposed Method Analysis
@@ -684,7 +603,7 @@ as.data.frame.matrix(conf_matrix) %>%
   ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
   geom_tile(color = "gray50", linewidth = 0.5) +
   
-  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  geom_text(aes(label = count, color = text_color), size = 3.5) +
   scale_fill_viridis_c(option = "magma", direction = -1) +
   
   scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +

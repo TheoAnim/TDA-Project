@@ -118,7 +118,7 @@ $$
 :::
 
 
-```{r}
+```{r load_data}
 #--------------------------------------------------------
 #----------Load & Preprocess Data------------------------
 #--------------------------------------------------------
@@ -372,10 +372,18 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 
 # Analysis {#sec-Analysis}
 
+## ML Analysis
+
+## Proposed Method Analysis
+
+## TDA + ML Analysis
+
 
 # Results/Future Work {#sec-Results}
 
-```{r}
+## ML Results
+
+```{r ml_results}
 #run the Mnist ML method code first, and take results from there
 # ml_results <- tibble(
 #   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
@@ -386,10 +394,12 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 ml_results <- readRDS("ml_results") #still a tibble so easy to edit
 
 ml_results |> 
-  kable(caption = "ML results", digits = 4)
+  kable(digits = 4)
 ```
 
+## Propsed Results
 
+## ML + TDA Results
 
 # References {#sec-References}
 

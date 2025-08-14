@@ -432,6 +432,23 @@ Feedforward neural network with structure:
 
 ## ML Analysis
 
+*Need confusion matrices*
+*Need accuracy, precision, recall, f_meas*
+
+```{r ml_results}
+#run the Mnist ML method code first, and take results from there
+# ml_results <- tibble(
+#   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
+#   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
+# )
+# saveRDS(ml_results, "ml_results")
+
+ml_results <- readRDS("ml_results") #still a tibble so easy to edit
+
+ml_results |> 
+  kable(digits = 4)
+```
+
 ## Proposed Method Analysis
 
 ```{r post_digit_plot0, fig.dim=c(10,6)}
@@ -536,21 +553,7 @@ multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_labe
 
 # Results/Future Work {#sec-Results}
 
-## ML Results
 
-```{r ml_results}
-#run the Mnist ML method code first, and take results from there
-# ml_results <- tibble(
-#   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
-#   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
-# )
-# saveRDS(ml_results, "ml_results")
-
-ml_results <- readRDS("ml_results") #still a tibble so easy to edit
-
-ml_results |> 
-  kable(digits = 4)
-```
 
 ## ML + TDA Results
 

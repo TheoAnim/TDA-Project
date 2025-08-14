@@ -62,11 +62,11 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 # saveRDS(train_knn, "ml/train_knn.rds")
 # stopCluster(cl)
 
-knn_train <- readRDS("train_knn")
-plot(train_knn)
-
-knn_prediction <- predict(train_knn, newdata = test_images)
-print(knn_prediction)
+# knn_train <- readRDS("train_knn")
+# plot(train_knn)
+#
+# knn_prediction <- predict(train_knn, newdata = test_images)
+# print(knn_prediction)
 
 #----------------------------------------------------------
 #----------------------------A multilayer Network----------
@@ -173,8 +173,6 @@ nn_ridge_accu
 # | Model Training       | 35 epochs, batch size 128, 20% validation split       |
 
 
-
-
 #-----------------------------------------------------------------------------------
 #-----------------Neural network with lasso regularization--------------------------
 #-----------------------------------------------------------------------------------
@@ -207,8 +205,6 @@ plot(nn_lasso_hist)
 
 nn_lasso_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
 nn_lasso_accu
-
-
 
 #--------------------------------------------------------------------------------
 #-----------------------multinomial logistic regression--------------------------

@@ -457,8 +457,6 @@ Multinomial logistic regression is equivalent to a NN with just input and output
 
 
 
-
-
 # Analysis {#sec-Analysis}
 
 ## To be edited 
@@ -471,10 +469,16 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 
 ```{r}
 #run the Mnist ML method code first, and take results from there
-tibble(
-  method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
-  accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
-)
+# ml_results <- tibble(
+#   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
+#   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
+# ) 
+# saveRDS(ml_results, "ml_results")
+
+ml_results <- readRDS("ml_results") #still a tibble so easy to edit
+
+ml_results |> 
+  kable(caption = "ML results", digits = 4)
 ```
 
 

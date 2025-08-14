@@ -451,28 +451,90 @@ ml_results |>
 ## Confusion matrix Heatmap - NN dropout
 ```{r}
 ## ggplot function for confusion matrix heatmap
-cm_ggplot <- function(conf_mat, type) {
-  cm_df <- as.data.frame(conf_mat$table)
-  ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = Freq), color = "black", size = 4) +
-    scale_fill_gradient(low = "white", high = "steelblue") +
-    labs(
-      title = paste("Confusion matrix heatmap - ", type),
-      x = "Predicted label",
-      y = "True label",
-      fill = "Count"
-    )
-}
-nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
-cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
+# cm_ggplot <- function(conf_mat, type) {
+#   cm_df <- as.data.frame(conf_mat$table)
+#   ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
+#     geom_tile(color = "white") +
+#     geom_text(aes(label = Freq), color = "black", size = 4) +
+#     scale_fill_gradient(low = "white", high = "steelblue") +
+#     labs(
+#       title = paste("Confusion matrix heatmap - ", type),
+#       x = "Predicted label",
+#       y = "True label",
+#       fill = "Count"
+#     )
+# }
 
+# cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
+```
+
+```{r}
+nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
+conf_matrix_nn_dropout <- nn_dropout_conf_mat$table
+
+as.data.frame.matrix(conf_matrix_nn_dropout) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  # Add a column to determine text color based on the background
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  # Map the new text_color column to the color aesthetic
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  # Manually set the colors and remove the unnecessary legend
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
 ```
 
 ## Confusion matrix - NN ridge
 ```{r}
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
-cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
+# cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
+conf_matrix_nn_ridge <- nn_ridge_conf_mat$table
+as.data.frame.matrix(conf_matrix_nn_ridge) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  # Add a column to determine text color based on the background
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  # Map the new text_color column to the color aesthetic
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  # Manually set the colors and remove the unnecessary legend
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
 ```
 
 ## Proposed Method Analysis

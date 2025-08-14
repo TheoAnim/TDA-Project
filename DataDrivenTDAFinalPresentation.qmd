@@ -204,10 +204,12 @@ ggplot(train_df, aes(labels, fill = labels))+
 
 ```
 
+:::{.notes}
 - Around 6000 digits in each class
 - No class imbalance
+:::
 
-## Pixel intensity representation of the training set
+## Pixel Intensity
 
 ```{r pixel_intensity, fig.dim=c(10,6)}
 #----------------------------------------------------------
@@ -222,14 +224,21 @@ ggplot(train_df_long) +
     fill = "#2C7FB8",
     color = "white",
     alpha = 0.8
-  )
+  ) 
+# ggplot(train_df_long) +
+#   geom_histogram(
+#     aes(intensity),
+#     bins = 30,
+#     fill = "#2C7FB8",
+#     color = "white",
+#     alpha = 0.8
+#   ) +
+#   scale_y_log10() +
+#   labs(y = "Count (log scale)")
 
 ```
 
-## Training data in 2D 
-
-We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the data in 2D.See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
-
+## Training Data tSNE Visualization
 
 ```{r tnse, fig.dim=c(10,6)}
 #------------------------------------------------------------
@@ -249,45 +258,83 @@ We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the dat
 # saveRDS(df_tsne, "df_tsne")
 df_tsne <- readRDS("df_tsne")
 ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
-  geom_point(alpha = .9)
+  geom_point(alpha = .5)
 ```
 
+:::{.notes}
+- We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the data in 2D.See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
+:::
 
 # Traditional ML
 
 ## Neural networks
 
-We use feedforward neural network which has the following structure:
+:::{.fragment}
+Feedforward neural network with structure:
+:::
 
-- input layer: consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
-- hidden layer: one or more hidden layers placed between the input and output layers,  responsible for capturing complex patterns
-- output layer: final output of the network. Here, the number of neurons represents the number of digits
+:::{.incremental}
+- Input layer: Consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
+- Hidden layer: One or more hidden layers placed between the input and output layers, responsible for capturing complex patterns
+- Output layer: Final output of the network; Number of neurons represents the number of digits
+:::
 
 ## NN with regularization
 
-:::{.fragement}
-- Depending on a model, a network can have more weights than the size of training data. This leads to overfitting.
-- We considered two approaches to overfitting
-  - Dropout learning: think of RF, randomly removes a fraction of the units in a layer during model fitting
-  - Regularization: impose penalties on parameters like lasso, ridge etc
+:::{.incremental}
+- Depending on model, \# network weights > size of training data
+    - This leads to overfitting
+- We considered two approaches to overfitting:
+  - Dropout learning: Like RF, randomly removes fraction of units in layer during model fitting
+  - Regularization: Impose penalties on parameters like lasso, ridge, etc.
 :::
 
 
 ## Specific NN models considered
 
+:::{.fragment}
 - NN with dropout regularization
+:::
+:::{.fragment}
 - NN with ridge regularization
+:::
+:::{.fragment}
 - NN with lasso regularization 
-
+:::
 
 ## Multinomial logistic regression
 
-Multinomial logistic regression is equivalent to a NN with just input and output layers. There are no hidden layers. 
-
+:::{.incremental}
+- Multinomial logistic regression equivalently represented by NN with no hidden layers
 - Output layer with softmax
+    - $f_m(X) = Pr(Y = m | X) = \frac{e^{Z_m}}{\sum_\limits{l \in K}e^{Z_l}}$
+:::
 
-## To be edited 
-Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification
+:::{.notes}
+- $m$ is the class label
+- $Z_m$ is the output of the model for class $m$
+- $X$ is the input data
+- $K$ is the set of all class labels
+- $l$ is a class label in $K$
+:::
+
+## NN Fitting
+
+:::{.incremental}
+- Train the network for 30 epochs with a default batch size of 32
+    - SGD updates weights for each batch
+- Images are presented in batches of 32, and SGD updates weights after each batch
+- Each epoch processes all 60,000 training images
+<!-- - After 30 epochs, the network’s error (loss) is visualized on the left graph -->
+<!-- - Accuracy shown on the right graph -->
+- Classification correct if largest output value matches target label
+:::
+
+:::{.notes}
+- SGD is an optimization algorithm used to minimize the loss function by updating the model's weights based on the gradients of the loss with respect to the weights
+:::
+
+<!-- Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification -->
 
 # Proposed Methodology {#sec-PropMethod}
 

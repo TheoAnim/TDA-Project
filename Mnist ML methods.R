@@ -205,9 +205,10 @@ nn_ridge_accu
 # | Model Compilation    | Loss: categorical crossentropy, Optimizer: RMSprop, Metric: accuracy |
 # | Model Training       | 35 epochs, batch size 128, 20% validation split       |
 
+
 #-----------NN ridge confusion matrix------------------------
 nn_ridge_conf_mat <- confu_mat(nn_ridge_pred_class, test_labels)
-saveRDS(nn_ridge_conf_mat, "nn_ridge_conf_mat")
+# saveRDS(nn_ridge_conf_mat, "nn_ridge_conf_mat")
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
 cm_ggplot(nn_ridge_conf_mat, type = "nn_dropout")
 

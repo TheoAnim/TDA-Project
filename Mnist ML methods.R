@@ -95,17 +95,7 @@ nn_dropout_model |>
   layer_dropout(rate = .3) |>
   layer_dense(units = 10, activation = "softmax")
 
-# nn_dropout_model <- keras_model_sequential(layers = list(
-#   layer_dense(
-#     units = 256,
-#     activation = "relu",
-#     input_shape = c(784)
-#   ),
-#   layer_dropout(rate = 0.4),
-#   layer_dense(units = 128, activation = "relu"),
-#   layer_dropout(rate = 0.3),
-#   layer_dense(units = 10, activation = "softmax")
-# ))
+
 
 summary(nn_dropout_model)
 
@@ -146,21 +136,41 @@ plot(nn_dropout_hist)
 accuracy_check <- function(pred, test_labels) {
   mean(to_categorical(drop(as.numeric(pred)), 10) == drop(test_labels))
 }
-
-nn_dropout_accu <- k_argmax(predict(nn_dropout_model, x_test)) |> accuracy_check(y_test)
+nn_drop_pred_class <- k_argmax(predict(nn_dropout_model, x_test))
+nn_dropout_accu <- accuracy_check(nn_drop_pred_class, y_test)
 nn_dropout_accu
+
+#### function to get confusion matrix
+confu_mat <- function(pred_classes, test_labels){
+  confusionMatrix(
+    factor(drop(as.numeric(pred_classes)), levels = 0:9),
+    drop(test_labels)
+  )
+}
+## ggplot function to represent the heatmap
+cm_ggplot <- function(conf_mat, type){
+  cm_df <- as.data.frame(conf_mat$table)
+  ggplot(cm_df, aes(Prediction, Reference, fill = Freq))+
+    geom_tile(color = "white")+
+    geom_text(aes(label = Freq), color = "black", size = 4)+
+    scale_fill_gradient(low = "white", high = "steelblue")+
+    labs(title = paste("Confusion matrix heatmap - ", type))
+}
+
+# nn_dropout_conf_mat <- confu_mat(nn_drop_pred_class, test_labels)
+# saveRDS(nn_dropout_conf_mat, "nn_dropout_conf_mat")
+nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
+cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
+
 
 #-----------------------------------------------------------------------------------
 #-----------------Neural network with ridge regularization--------------------------
 #-----------------------------------------------------------------------------------
 # adds a penalty proportional to the sqaure of the weights
 nn_ridge_model <- keras_model_sequential() |>
-  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-  #             kernel_regularizer = regularizer_l2(l = .01)) |>
-  # layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
-    kernel_regularizer = regularizer_l2(l = .001)
+    kernel_regularizer = regularizer_l2(l = .01)
   ) |>
   layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
   layer_dense(units = 10, activation = "softmax")
@@ -182,8 +192,8 @@ nn_reg_hist <- nn_ridge_model |> fit(
 )
 
 plot(nn_ridge_hist)
-
-nn_ridge_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_ridge_pred_class <- k_argmax(predict(nn_ridge_model, x_test))
+nn_ridge_accu <-  accuracy_check(nn_ridge_pred_class, y_test)
 nn_ridge_accu
 
 # | Step                  | Description                                           |
@@ -195,20 +205,23 @@ nn_ridge_accu
 # | Model Compilation    | Loss: categorical crossentropy, Optimizer: RMSprop, Metric: accuracy |
 # | Model Training       | 35 epochs, batch size 128, 20% validation split       |
 
+#-----------NN ridge confusion matrix------------------------
+nn_ridge_conf_mat <- confu_mat(nn_ridge_pred_class, test_labels)
+saveRDS(nn_ridge_conf_mat, "nn_ridge_conf_mat")
+nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
+cm_ggplot(nn_ridge_conf_mat, type = "nn_dropout")
+
 
 #-----------------------------------------------------------------------------------
 #-----------------Neural network with lasso regularization--------------------------
 #-----------------------------------------------------------------------------------
 ### adds a penalty proportional to the absolute value of the weights
 nn_lasso_model <- keras_model_sequential() |>
-  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-  #             kernel_regularizer = regularizer_l1(l = .01)) |>
-  # layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
-    kernel_regularizer = regularizer_l1(l = .001)
+    kernel_regularizer = regularizer_l1(l = .01)
   ) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .001)) |>
+  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
   layer_dense(units = 10, activation = "softmax")
 
 summary(nn_lasso_model)

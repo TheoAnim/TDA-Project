@@ -31,7 +31,7 @@ prepare_digit_data <- function(digit, n_samples = 10) {
 
 get_persistence_diagrams <- function(image_list) {
   future_map(image_list, ~ {
-    ripserr::cubical(1 - .x, dim = 1) |>
+    ripserr::cubical(1 - .x) |>
       as_tibble() |>
       filter(is.finite(death)) |>
       mutate(persistence = death - birth) |>
@@ -124,11 +124,14 @@ generate_all_posteriors <- function(feature_dim, n_samples = 60000) {
   }, .options = furrr_options(seed = TRUE))
 }
 
-posteriors_list_dim0 <- generate_all_posteriors(feature_dim = 0)
-posteriors_list_dim1 <- generate_all_posteriors(feature_dim = 1)
+# posterior_list_dim0 <- generate_all_posteriors(feature_dim = 0)
+# posterior_list_dim1 <- generate_all_posteriors(feature_dim = 1)
 
-posterior_wpp_list_dim0 <- map(posteriors_list_dim0, to_wpp) |> set_names(digits)
-posterior_wpp_list_dim1 <- map(posteriors_list_dim1, to_wpp) |> set_names(digits)
+posterior_list_dim0 <- readRDS("btda/posterior_list_dim0.rds")
+posterior_list_dim1 <- readRDS("btda/posterior_list_dim1.rds")
+
+posterior_wpp_list_dim0 <- map(posterior_list_dim0, to_wpp) |> set_names(digits)
+posterior_wpp_list_dim1 <- map(posterior_list_dim1, to_wpp) |> set_names(digits)
 
 wpp_null <- wpp(coordinates = matrix(c(0, 0), nrow = 1), mass = 1)
 emptiness_penalties_dim1 <- map_dbl(posterior_wpp_list_dim1, ~ transport::wasserstein(.x, wpp_null, p = 1))
@@ -168,7 +171,7 @@ full_results <- mnist_test_set |>
   mutate(
     classification_output = future_map(
       image_matrix,
-      ~ classify_digit_combined(.x, posterior_wpp_list_dim0, posterior_wpp_list_dim1, emptiness_penalties_dim1),
+      ~ classify_digit_combined_revised(.x, posterior_wpp_list_dim0, posterior_wpp_list_dim1, emptiness_penalties_dim1),
       .progress = TRUE,
       .options = furrr_options(seed = TRUE, packages = c("tidyverse", "transport", "ripserr"))
     )
@@ -186,46 +189,6 @@ plan(sequential)
 # Save rds
 #------------------------------------------------------------#
 
-saveRDS(posteriors_list_dim0, "btda/posterior_list_dim0.rds")
-saveRDS(posteriors_list_dim1, "btda/posterior_list_dim1.rds")
-
-str(posteriors_list_dim0)
-posteriors_dim0_df <- posteriors_list_dim0 |>
-  set_names(0:9) |>
-  list_rbind(names_to = "digit") |>
-  # For clarity on the axes, let's treat 'persistence' as 'death' time
-  rename(death = persistence)
-
-# Create the faceted plot
-ggplot(posteriors_dim0_df, aes(x = birth, y = death, fill = intensity)) +
-  geom_raster() +
-  facet_wrap(~digit, ncol = 5) +
-  scale_fill_viridis_c(option = "plasma") +
-  labs(
-    title = "Posterior Densities for Digit Components (Dimension 0)",
-    x = "Birth Time",
-    y = "Death Time",
-    fill = "Intensity"
-  ) +
-  theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
-
-posteriors_dim1_df <- posteriors_list |>
-  map("post_data") |> # We need to extract the 'post_data' tibble
-  set_names(0:9) |>
-  list_rbind(names_to = "digit") |>
-  rename(death = persistence)
-
-# Create the faceted plot
-ggplot(posteriors_dim1_df, aes(x = birth, y = death, fill = intensity)) +
-  geom_raster() +
-  facet_wrap(~digit, ncol = 5) +
-  scale_fill_viridis_c(option = "magma") +
-  labs(
-    title = "Posterior Densities for Digit Loops (Dimension 1)",
-    x = "Birth Time",
-    y = "Death Time",
-    fill = "Intensity"
-  ) +
-  theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
+# saveRDS(posterior_list_dim0, "btda/posterior_list_dim0.rds")
+# saveRDS(posterior_list_dim1, "btda/posterior_list_dim1.rds")
+# saveRDS(full_results, "btda/full_tda_01_results.rds")

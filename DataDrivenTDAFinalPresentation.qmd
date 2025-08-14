@@ -91,6 +91,8 @@ library(TDA)
 library(RColorBrewer)
 library(Rtsne)
 library(keras)
+library(furrr)
+library(yardstick)
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
@@ -180,6 +182,7 @@ test_images_binarized <- binarize_images(test_images_list)
 1. [MNIST EDA](#sec-EDA)
 1. [Tradiotional ML](#sec-MLMethod)
 1. [Proposed Methodology](#sec-PropMethod)
+1. [Analysis](#sec-Analysis)
 1. [TDA + ML](#sec-TDAML)
 1. [Results/Future Work](#sec-Results)
 1. [References](#sec-References)
@@ -215,8 +218,11 @@ ggplot(train_df, aes(labels, fill = labels))+
 #----------------------------------------------------------
 #-----------Pixel intensity representation-----------------
 #----------------------------------------------------------
-train_df_long <- train_df |>
-  pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
+# train_df_long <- train_df |>
+#   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
+# saveRDS(train_df_long, "train_df_long.rds")
+train_df_long <- readRDS("train_df_long.rds")
+
 ggplot(train_df_long) +
   geom_histogram(
     aes(intensity),
@@ -332,6 +338,7 @@ Feedforward neural network with structure:
 
 :::{.notes}
 - SGD is an optimization algorithm used to minimize the loss function by updating the model's weights based on the gradients of the loss with respect to the weights
+- This process iteratively adjusts the weights to improve the model's performance on the training data
 :::
 
 <!-- Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification -->
@@ -343,72 +350,83 @@ Feedforward neural network with structure:
 ```{tikz}
 %| echo: false
 
-\usetikzlibrary{positioning, arrows.meta}
+\usetikzlibrary{
+    positioning, 
+    arrows.meta, 
+    shapes.geometric, 
+    fit, 
+    calc
+}
 
 \begin{tikzpicture}[
+    % Adjusted node distances for better spacing
     node distance = 1.2cm and 2cm,
-    auto,
     every node/.style={
-        draw,
-        thick,
-        rounded corners,
-        align=center,
-        minimum height=1.2cm
+        draw, 
+        thick, 
+        rounded corners, 
+        align=center, 
+        minimum height=1.3cm,
+        font=\sffamily
     },
-    arrow/.style={->, >=Stealth}
+    data/.style={fill=green!20, text width=3cm},
+    prior/.style={fill=yellow!30, text width=4cm},
+    posterior/.style={fill=blue!20, text width=4cm},
+    result/.style={fill=red!20, text width=3.5cm},
+    process/.style={text width=4cm},
+    arrow/.style={->, >=Stealth, thick},
+    connector/.style={draw=none, font=\sffamily\Huge},
+    % A dedicated style for labels on arrows (edges)
+    edge_label/.style={draw=none, midway, fill=none, font=\sffamily}
 ]
 
-% Define nodes for the flowchart
-\node (train) {Train Data \\ 60,000 \\ 28x28};
-\node (test) [below=2.5cm of train] {Test Data \\ 10,000 \\ 28x28};
+% == Column 1 & 2: Data and PD Calculation ==
+% Position nodes in the first two columns
+\node[data] (train) {Train Data \\ (60,000 images)};
+\node[process, right=of train] (calc_pd_train) {Calculate Train PDs \\ (for dim0 \& dim1)};
 
-\node (PDdots) [right=2cm of train] {$\vdots$};
-\node (OPD0) [above=.5cm of PDdots] {Observed PDs for 0};
-\node (priors) [above=2cm of train] {Prior};
-\node (OPD9) [below=.5cm of PDdots] {Observed PDs for 9};
+% Increased vertical distance for a clearer separation of train/test paths
+\node[data, below=3.75cm of train] (test) {Test Data \\ (10,000 images)};
+\node[process, right=of test] (calc_pd_test) {Calculate Test PDs \\ (for dim0 \& dim1)};
 
-\node (update) [right=1.5cm of PDdots, draw=none, scale=2] {$\odot$};
-\node (priordots) [right=2cm of update] {$\vdots$};
-\node (prior0) [above=.5cm of priordots] {Uniformitive Prior for 0};
-\node (prior9) [below=0.5cm of priordots] {Uniformitive Prior for 9};
+% == Column 3: Bayesian Model Training ==
+% Position this block relative to the training data processing nodes
+\node[process, right=of calc_pd_train] (likelihoods) {Likelihood Surfaces from Train PDs \\ (for digits 0-9)};
+%\node[connector, right=of likelihoods] (update_op) {$\otimes$};
+\node[connector, right=of likelihoods] (update_op) {$\odot$};
+\node[prior, right=of update_op] (priors) {Uninformative Priors \\ (for digits 0-9)};
+\node[posterior, below=of update_op] (posteriors) {Posterior Surfaces \\ (for digits 0-9)};
 
-\node (equals) [right=2cm of priordots, draw=none, scale=2] {=};
+% Bounding box for the Bayesian update process
+\node[draw, dashed, inner sep=0.4cm, fit=(priors) (likelihoods) (update_op) (posteriors), label={[font=\sffamily\bfseries]above:Bayesian Update}] (model_box) {};
 
-\node (postdots) [right=1.25cm of equals] {$\vdots$};
-\node (post0) [above=.5cm of postdots] {Posterior for 0};
-\node (post9) [below=.5cm of postdots] {Posterior for 9};
+% == Column 4: Classification ==
+% Position the classification node vertically centered between its inputs for a balanced look
+\node[process, below=of posteriors] (calc_dist) {Calculate Distances to all Posteriors \\ Distance = $d_{0} + d_{1}$};
+\node[result, below=of calc_dist] (classify) {Classify as \\ argmin(Distance)};
 
-\node (testDist) [right=2.5cm of postdots] {10 Disatnces/PD};
-\node (testPD) [below=2.5cm of testDist] {Test PDs};
+% == Arrows ==
+% Connect nodes with clearer, non-overlapping paths
+\draw[arrow] (train) -- (calc_pd_train);
+\draw[arrow] (test) -- (calc_pd_test);
 
-\node (classify) [right=.5cm of testDist] {Classify as $\mathrm{argmin}$ Distances};
+% Bayesian model flow
+\draw[arrow] (calc_pd_train) -- (likelihoods);
+\draw[arrow] (priors) |- (posteriors);
+\draw[arrow] (likelihoods) |- (posteriors);
 
-% Draw edges between nodes
+% Classification flow
+% Use |- routing to different anchors (north west and south west) to keep lines clean
+\draw[arrow] (posteriors) -- (calc_dist);
+\draw[arrow] (calc_pd_test) -- (calc_dist);
 
-\draw [arrow] (train) -- (OPD0);
-\draw [arrow] (train) -- (PDdots);
-\draw [arrow] (train) -- (OPD9);
-\draw [arrow] (priors) -| (prior0);
-
-%\draw [arrow, bend left=45] (OPD0) to (post0);
-\draw [arrow] (OPD0) -- ++(0,1cm) -- ++(2cm,0) -| (post0);
-\draw [arrow] (OPD9) -- ++(0,-1cm) -- ++(2cm,0) -| (post9);
-\draw [arrow] (prior0) -- (post0);
-\draw [arrow] (prior9) -- (post9);
-
-\draw [arrow] (post0) -- (testDist);
-\draw [arrow] (postdots) -- (testDist);
-\draw [arrow] (post9) -- (testDist);
-\draw [arrow] (testPD) -- (testDist);
-\draw [arrow] (test) -- (testPD);
-
-\draw [arrow] (testDist) -- (classify);
-%\draw [arrow, bend left] (posterior) to node [pos=0.5, above] {EB} (proj);
-
+% Arrow with a nicely placed label for the distance formula
+\draw[arrow] (calc_dist) -- (classify);
+    %node[edge_label, right=0.2cm] {Distance = \\ $(1-\lambda)d_{0} + \lambda d_{1}$};
+    %node[edge_label, right=0.2cm] {Distance = $d_{0} + d_{1}$};
+    
 \end{tikzpicture}
 ```
-
-# TDA + ML {#sec-TDAML}
 
 # Analysis {#sec-Analysis}
 
@@ -416,8 +434,105 @@ Feedforward neural network with structure:
 
 ## Proposed Method Analysis
 
-## TDA + ML Analysis
+```{r post_digit_plot0, fig.dim=c(10,6)}
+posterior_list_dim0 <- readRDS("btda/posterior_list_dim0.rds")
+posterior_dim0_df <- posterior_list_dim0 |>
+  set_names(0:9) |>
+  list_rbind(names_to = "digit")
 
+ggplot(posterior_dim0_df, aes(x = birth, y = persistence, fill = intensity)) +
+  geom_raster() +
+  facet_wrap(~digit, ncol = 5) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(
+    title = "Posterior Densities for Digit Components (Dimension 0)",
+    x = "Birth",
+    y = "Persistence",
+    fill = "Intensity"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 12, face = "bold"))
+```
+
+## Proposed Method Analysis
+
+```{r post_digit_plot1, fig.dim=c(10,6)}
+posterior_list_dim1 <- readRDS("btda/posterior_list_dim1.rds")
+posterior_dim1_df <- posterior_list_dim1 |>
+  set_names(0:9) |>
+  list_rbind(names_to = "digit")
+
+ggplot(posterior_dim1_df, aes(x = birth, y = persistence, fill = intensity)) +
+  geom_raster() +
+  facet_wrap(~digit, ncol = 5) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(
+    title = "Posterior Densities for Digit Loops (Dimension 1)",
+    x = "Birth",
+    y = "Persistence",
+    fill = "Intensity"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 12, face = "bold"))
+```
+
+## Proposed Method Analysis
+
+```{r tda01confmatrix, fig.dim=c(10,6)}
+
+full_tda_01_results <- readRDS("btda/full_tda_01_results.rds")
+
+conf_matrix <- table(
+  true_label = full_tda_01_results$true_label,
+  predicted_label = full_tda_01_results$predicted_label
+)
+
+as.data.frame.matrix(conf_matrix) %>%
+  mutate(true_label = rownames(.)) %>%
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c(option = "magma", direction = 1) +
+  theme_minimal() +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# accuracy <- mean(full_results$true_label == full_results$predicted_label, na.rm = TRUE)
+
+```
+
+## Proposed Method Analysis
+
+```{r tda01metrics}
+multi_metrics <- metric_set(
+  yardstick::accuracy, 
+  yardstick::precision, 
+  yardstick::recall, 
+  yardstick::f_meas
+)
+
+# Now this will work correctly
+results_for_metrics <- full_tda_01_results |>
+  select(true_label, predicted_label) |>
+  mutate(
+    true_label = factor(true_label, levels = 0:9),
+    predicted_label = factor(predicted_label, levels = 0:9)
+  )
+
+multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_label) |> 
+  janitor::clean_names() |>
+  kable()
+```
+
+# TDA + ML {#sec-TDAML}
 
 # Results/Future Work {#sec-Results}
 
@@ -436,8 +551,6 @@ ml_results <- readRDS("ml_results") #still a tibble so easy to edit
 ml_results |> 
   kable(digits = 4)
 ```
-
-## Propsed Results
 
 ## ML + TDA Results
 

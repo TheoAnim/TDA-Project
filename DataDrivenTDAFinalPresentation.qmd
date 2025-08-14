@@ -177,19 +177,19 @@ test_images_binarized <- binarize_images(test_images_list)
 
 # Contents
 
-1. [MNIST Overview](#sec-MNIST)
-<!-- 1. [Machine Learning/Classification Methods](#sec-MLMethod) -->
-<!-- 1. [Intro to TDA](#sec-TDAIntro) -->
-<!-- 1. [TDA Methodology](#sec-TDAMethod) -->
-1. [Analysis](#sec-Analysis)
+1. [MNIST EDA](#sec-EDA)
+1. [Tradiotional ML](#sec-MLMethod)
+1. [Proposed Methodology](#sec-PropMethod)
+1. [TDA + ML](#sec-TDAML)
 1. [Results/Future Work](#sec-Results)
 1. [References](#sec-References)
 
 
-# Exploratory Data Analysis
+# Exploratory Data Analysis {#sec-EDA}
 
 
 ## Distribution of training labels
+
 ```{r dist_labels, fig.dim=c(10,6)}
 #--------------------------------------------------------
 #----------Distribution of training labels---------------
@@ -205,6 +205,7 @@ ggplot(train_df, aes(labels, fill = labels))+
 ```
 
 ## Pixel intensity representation of the training set
+
 ```{r pixel_intensity, fig.dim=c(10,6)}
 #----------------------------------------------------------
 #-----------Pixel intensity representation-----------------
@@ -223,6 +224,7 @@ ggplot(train_df_long) +
 ```
 
 ## Training data in 2D 
+
 ```{r tnse, fig.dim=c(10,6)}
 #------------------------------------------------------------
 #----------------distribution of mnist training--------------
@@ -246,7 +248,46 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 
 
 
-# TDA Workflow
+
+# Traditional ML
+
+## Neural networks
+
+We use feedforward neural network which has the following structure
+
+- input layer: consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
+- hidden layer: one or more hidden layers placed between the input and output layers,  responsible for capturing complex patterns
+- output layer: final output of the network. Here, the number of neurons represents the number of digits
+
+## NN with regularization
+
+:::{.fragement}
+- Depending on a model, a network can have more weights than the size of training data. This leads to overfitting.
+- We considered two approaches to overfitting
+  - Dropout learning: think of RF, randomly removes a fraction of the units in a layer during model fitting
+  - Regularization: impose penalties on parameters like lasso, ridge etc
+:::
+
+
+## Specific NN models considered
+
+- NN with dropout regularization
+- NN with ridge regularization
+- NN with lasso regularization 
+
+
+## Multinomial logistic regression
+
+Multinomial logistic regression is equivalent to a NN with just input and output layers. There are no hidden layers. 
+
+- Output layer with softmax
+
+## To be edited 
+Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification
+
+# Proposed Methodology {#sec-PropMethod}
+
+## TDA Workflow
 
 ```{tikz}
 %| echo: false
@@ -323,51 +364,13 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 \end{tikzpicture}
 ```
 
-
-
-
-
-# Machine Learning Methods
-
-## Neural networks
-
-We use feedforward neural network which has the following structure
-
-- input layer: consists of neurons that receives the input data each neuron in the input layer represents a feature of the input data
-- hidden layer: one or more hidden layers placed between the input and output layers,  responsible for capturing complex patterns
-- output layer: final output of the network. Here, the number of neurons represents the number of digits
-
-## NN with regularization
-
-:::{.fragement}
-- Depending on a model, a network can have more weights than the size of training data. This leads to overfitting.
-- We considered two approaches to overfitting
-  - Dropout learning: think of RF, randomly removes a fraction of the units in a layer during model fitting
-  - Regularization: impose penalties on parameters like lasso, ridge etc
-:::
-
-
-## Specific NN models considered
-
-- NN with dropout regularization
-- NN with ridge regularization
-- NN with lasso regularization 
-
-
-## Multinomial logistic regression
-
-Multinomial logistic regression is equivalent to a NN with just input and output layers. There are no hidden layers. 
-
-- Output layer with softmax
-
-
+# TDA + ML {#sec-TDAML}
 
 
 
 # Analysis {#sec-Analysis}
 
-## To be edited 
-Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification
+
 
 
 # Results/Future Work {#sec-Results}

@@ -449,20 +449,27 @@ ml_results |>
 ```
 
 ## Confusion matrix Heatmap - NN dropout
-```{r}
+```{r, fig.dim=c(10,6)}
 ## ggplot function for confusion matrix heatmap
 cm_ggplot <- function(conf_mat, type) {
   cm_df <- as.data.frame(conf_mat$table)
   ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = Freq), color = "black", size = 4) +
-    scale_fill_gradient(low = "white", high = "steelblue") +
+    geom_tile(color = "gray50") +
+    geom_text(aes(label = Freq), color = "red", size = 4) +
+    #scale_fill_gradient(low = "white", high = "steelblue") +
+    scale_fill_viridis_c(option = "magma", direction = -1) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )+
     labs(
       title = paste("Confusion matrix heatmap - ", type),
       x = "Predicted label",
       y = "True label",
       fill = "Count"
-    )
+    ) 
 }
 nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
 cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
@@ -470,7 +477,7 @@ cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
 ```
 
 ## Confusion matrix - NN ridge
-```{r}
+```{r, fig.dim=c(10,6)}
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
 cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
 ```

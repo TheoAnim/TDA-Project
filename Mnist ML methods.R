@@ -59,7 +59,6 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 #   metric = "Accuracy",
 #   trControl = knn_trainControl
 # )
-<<<<<<< HEAD
 # saveRDS(train_knn, "train_knn")
 
 # knn_train <- readRDS("train_knn")
@@ -68,10 +67,8 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 # knn_prediction <- predict(train_knn, newdata = test_images)
 # print(knn_prediction)
 
-=======
 # saveRDS(train_knn, "ml/train_knn.rds")
 # stopCluster(cl)
->>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
 
 # knn_train <- readRDS("train_knn")
 # plot(train_knn)
@@ -153,7 +150,7 @@ nn_ridge_model <- keras_model_sequential() |>
     units = 256, activation = "relu", input_shape = ncol(x_train),
     kernel_regularizer = regularizer_l2(l = .001)
   ) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l2(l = .001)) |>
+  layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
 >>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
   layer_dense(units = 10, activation = "softmax")
 

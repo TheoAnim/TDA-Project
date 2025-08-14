@@ -204,10 +204,8 @@ ggplot(train_df, aes(labels, fill = labels))+
 
 ```
 
-:::{.fragement}
 - Around 6000 digits in each class
 - No class imbalance
-:::
 
 ## Pixel intensity representation of the training set
 
@@ -230,6 +228,9 @@ ggplot(train_df_long) +
 
 ## Training data in 2D 
 
+We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the data in 2D.See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
+
+
 ```{r tnse, fig.dim=c(10,6)}
 #------------------------------------------------------------
 #----------------distribution of mnist training--------------
@@ -250,9 +251,6 @@ df_tsne <- readRDS("df_tsne")
 ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
   geom_point(alpha = .9)
 ```
-
-We adopt t-distributed Stochastic Neighbor Embedding(t-SNE) to represent the data in 2D.(See details ![here](https://rpubs.com/TusVasMit/T-SNEExploration))
-
 
 
 # Traditional ML
@@ -375,8 +373,6 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 # Analysis {#sec-Analysis}
 
 
-
-
 # Results/Future Work {#sec-Results}
 
 ```{r}
@@ -384,7 +380,7 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 # ml_results <- tibble(
 #   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
 #   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
-# ) 
+# )
 # saveRDS(ml_results, "ml_results")
 
 ml_results <- readRDS("ml_results") #still a tibble so easy to edit

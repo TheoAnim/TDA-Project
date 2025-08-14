@@ -546,6 +546,41 @@ as.data.frame.matrix(conf_matrix_nn_ridge) %>%
   )
 ```
 
+## Confusion Matrix Heatmap - NN lasso
+```{r, fig.dim=c(10,6)}
+nn_lasso_conf_mat <- readRDS("nn_lasso_conf_mat")
+# cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
+conf_matrix_nn_lasso <- nn_lasso_conf_mat$table
+as.data.frame.matrix(conf_matrix_nn_lasso) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
+```
+
+
 ## Confusion Matrix Heatmap - Multinomial 
 ```{r,  fig.dim=c(10,6)}
 mlogit_conf_mat <- readRDS("mlogit_conf_mat")

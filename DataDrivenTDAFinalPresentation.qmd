@@ -119,17 +119,18 @@ $$
 
 
 ```{r}
-#------------------------------------------------------------#
-### Code
+#--------------------------------------------------------
+#----------Load & Preprocess Data------------------------
+#--------------------------------------------------------
 mnist <- readRDS(file = "mnist_dataset")
 
 train <- mnist$train
 test <- mnist$test
 
-train_images <- train$images  # Matrix of size 60,000 x 784
-train_labels <- as.factor(train$labels)  # Factorized labels (0-9)
+train_images <- train$images
+train_labels <- as.factor(train$labels)  
 
-test_images <- test$images   # Matrix of size 10,000 x 784
+test_images <- test$images  
 test_labels <- as.factor(test$labels)
 
 train_images <- train_images / 255
@@ -172,102 +173,6 @@ test_images_binarized <- binarize_images(test_images_list)
 # plot_digit(image_index = 8) + plot_digit(train_images_binarized, image_index = 8)
 
 #------------------------------------------------------------#
-generate_pd <- function(n_points = 100, noise_variance, seed) {
-  set.seed(seed)
-  theta <- runif(n_points, 0, 2 * pi)
-  point_cloud_tbl <- tibble(x = cos(theta), y = sin(theta)) |>
-    mutate(
-      x = x + rnorm(n(), 0, sqrt(noise_variance)),
-      y = y + rnorm(n(), 0, sqrt(noise_variance))
-    )
-  homology_res <- TDAstats::calculate_homology(
-    as.matrix(point_cloud_tbl), dim = 1, threshold = 2
-  )
-  
-  as_tibble(homology_res) |>
-    filter(dimension == 1, is.finite(death)) |>
-    mutate(persistence = death - birth) |>
-    select(dimension, birth, persistence)
-}
-
-calculate_prior_data <- function(grid_points, prior_params) {
-  intensity_values <- apply(grid_points, 1, function(p) {
-    if (p["persistence"] < 0) return(0)
-    BayesTDA::Wedge_Gaussian_Mixture(
-      x = as.numeric(p),
-      weights = prior_params$weights,
-      means = prior_params$means,
-      sigmas = prior_params$sigmas
-    )
-  })
-  intensity_values[!is.finite(intensity_values)] <- 0
-  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
-}
-
-calculate_posterior_data <- function(grid_points, observed_pd, prior_params, noise_sigma, alpha, sigma_y) {
-  Dy_list <- split(observed_pd |> select(birth, persistence) |> as.matrix(), 1:nrow(observed_pd))
-  noise_params <- list(weights = 1, means = list(c(0.5, 0)), sigmas = noise_sigma)
-  
-  intensity_values <- apply(grid_points, 1, function(p) {
-    if (p["persistence"] < 0) return(0)
-    BayesTDA::postIntensityPoisson(
-      x = as.numeric(p), Dy = Dy_list, alpha = alpha,
-      weight.prior = prior_params$weights, mean.prior = prior_params$means,
-      sigma.prior = prior_params$sigmas, sigma.y = sigma_y,
-      weights.unexpected = noise_params$weights, mean.unexpected = noise_params$means,
-      sigma.unexpected = noise_params$sigmas
-    )
-  })
-  intensity_values[!is.finite(intensity_values)] <- 0
-  bind_cols(grid_points, intensity = intensity_values / max(intensity_values))
-}
-
-plot_intensity <- function(data, observed = NULL, title = "") {
-  p <- ggplot(data, aes(x = birth, y = persistence)) +
-    geom_raster(aes(fill = intensity), interpolate = TRUE) +
-    scale_fill_viridis_c(option = "plasma", name = "Intensity", limits = c(0, 1)) +
-    coord_cartesian(xlim = c(0, 2.5), ylim = c(0, 2.5), expand = FALSE) +
-    labs(x = "birth", y = "persistence", title = title) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5))
-    
-  if (!is.null(observed)) {
-    p <- p + geom_point(data = observed, color = "chartreuse3", size = 2.5, shape = 16)
-  }
-  p
-}
-
-observed_pd <- generate_pd(noise_variance = 0.001, seed = 123)
-
-eval_grid <- expand_grid(
-  birth = seq(0, 2.5, length.out = 100),
-  persistence = seq(0, 2.5, length.out = 100)
-)
-# prior_inf_params <- list(means = list(c(0.5, 1.2)), sigmas = c(.01), weights = c(1))
-# prior_uni_params <- list(means = list(c(1, 1)), sigmas = c(1), weights = c(1))
-
-# prior_inf_data <- calculate_prior_data(eval_grid, prior_inf_params)
-# prior_uni_data <- calculate_prior_data(eval_grid, prior_uni_params)
-# 
-# posterior_inf_data <- calculate_posterior_data(
-#   eval_grid, observed_pd, prior_inf_params,
-#   noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
-# )
-# posterior_uni_data <- calculate_posterior_data(
-#   eval_grid, observed_pd, prior_uni_params,
-#   noise_sigma = sqrt(0.1), alpha = 1.0, sigma_y = 0.1
-# )
-# 
-# p_prior_inf <- plot_intensity(prior_inf_data, title = "Informative Prior")
-# p_prior_uni <- plot_intensity(prior_uni_data, title = "Uniform Prior")
-# p_post_inf <- plot_intensity(posterior_inf_data, observed = observed_pd, title = "Posterior (Informative)")
-# p_post_uni <- plot_intensity(posterior_uni_data, observed = observed_pd, title = "Posterior (Uniform)")
-# 
-# (p_prior_inf | p_prior_uni) / (p_post_inf | p_post_uni) +
-#   plot_layout(guides = "collect")
-#------------------------------------------------------------#
-
-#------------------------------------------------------------#
 ```
 
 # Contents
@@ -285,7 +190,7 @@ eval_grid <- expand_grid(
 
 
 ## Distribution of training labels
-```{r}
+```{r dist_labels, fig.dim=c(10,6)}
 #--------------------------------------------------------
 #----------Distribution of training labels---------------
 #--------------------------------------------------------
@@ -300,7 +205,7 @@ ggplot(train_df, aes(labels, fill = labels))+
 ```
 
 ## Pixel intensity representation of the training set
-```{r}
+```{r pixel_intensity, fig.dim=c(10,6)}
 #----------------------------------------------------------
 #-----------Pixel intensity representation-----------------
 #----------------------------------------------------------
@@ -318,7 +223,7 @@ ggplot(train_df_long) +
 ```
 
 ## Training data in 2D 
-```{r}
+```{r tnse, fig.dim=c(10,6)}
 #------------------------------------------------------------
 #----------------distribution of mnist training--------------
 #------------------------------------------------------------
@@ -463,12 +368,11 @@ Multinomial logistic regression is equivalent to a NN with just input and output
 Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification
 
 
-
-
 # Results/Future Work {#sec-Results}
 
 ```{r}
 #run the Mnist ML method code first, and take results from there
+<<<<<<< HEAD
 # ml_results <- tibble(
 #   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
 #   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
@@ -479,6 +383,12 @@ ml_results <- readRDS("ml_results") #still a tibble so easy to edit
 
 ml_results |> 
   kable(caption = "ML results", digits = 4)
+=======
+# tibble(
+#   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
+#   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
+# )
+>>>>>>> 5469f1ec1fdf8a604a0ff3923a09b6902ace2509
 ```
 
 

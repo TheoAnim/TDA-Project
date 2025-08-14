@@ -328,9 +328,9 @@ Feedforward neural network with structure:
 ## NN Fitting
 
 :::{.incremental}
-- Train the network for 30 epochs with a default batch size of 32
+- Train the network for 30 epochs with a batch size of 128
     - SGD updates weights for each batch
-- Images are presented in batches of 32, and SGD updates weights after each batch
+- Images are presented in batches of 128, and SGD updates weights after each batch
 - Each epoch processes all 60,000 training images
 <!-- - After 30 epochs, the network’s error (loss) is visualized on the left graph -->
 <!-- - Accuracy shown on the right graph -->
@@ -341,8 +341,6 @@ Feedforward neural network with structure:
 - SGD is an optimization algorithm used to minimize the loss function by updating the model's weights based on the gradients of the loss with respect to the weights
 - This process iteratively adjusts the weights to improve the model's performance on the training data
 :::
-
-<!-- Let’s train the network for 30 epochs, using a default batch size of 32. This means that images from the training set will be presented to the network in batches of 32 at a time, and for each batch, the SGD algorithm will update the network’s weights by an appropriate amount. Then another batch of 32 images will be presented, and so on, until all 60,000 training images in the dataset have been processed, which constitutes one epoch of training. This entire cycle will be repeated for 30 epochs. As training proceeds, the network’s error (loss) on both the training and testing/validation sets will be shown on the left graph, and the accuracy on each of these sets will be shown on the right graph. The accuracy is simply the fraction of input images that the network classifies correctly. A classification is considered correct if the largest output value on the output layer corresponds to the target classification -->
 
 # Proposed Methodology {#sec-PropMethod}
 

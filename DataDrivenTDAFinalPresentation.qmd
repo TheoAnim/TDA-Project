@@ -315,42 +315,35 @@ Let’s train the network for 30 epochs, using a default batch size of 32. This 
 
 % Define nodes for the flowchart
 \node (train) {Train Data \\ 60,000 \\ 28x28};
-\node (test) [below=4.5cm of train] {Test Data \\ 10,000 \\ 28x28};
+\node (test) [below=2.5cm of train] {Test Data \\ 10,000 \\ 28x28};
 
-\node (train1) [right=.5cm of train] {EB Set 5\%};
-\node (train2) [below=1.75cm of train1] {Training Set 95\%};
-
-\node (priors) [right=2.5cm of train1] {Priors, \\2/class};
-\node (OPD0) [below=.5cm of priors] {Observed PD's for 0};
-\node (PDdots) [below=0.1cm of OPD0] {$\vdots$};
-\node (OPD9) [below=.1cm of PDdots] {Observed PD's for 9};
+\node (PDdots) [right=2cm of train] {$\vdots$};
+\node (OPD0) [above=.5cm of PDdots] {Observed PDs for 0};
+\node (priors) [above=2cm of train] {Prior};
+\node (OPD9) [below=.5cm of PDdots] {Observed PDs for 9};
 
 \node (update) [right=1.5cm of PDdots, draw=none, scale=2] {$\odot$};
-\node (priordots) [right=2.75cm of update] {$\vdots$};
-\node (prior0) [above=.1cm of priordots] {Uniformitive Prior for 0 \\ Relatively informitive Prior for 0};
-\node (prior9) [below=0.1cm of priordots] {Uniformitive Prior for 9 \\ Relatively informitive Prior for 9};
+\node (priordots) [right=2cm of update] {$\vdots$};
+\node (prior0) [above=.5cm of priordots] {Uniformitive Prior for 0};
+\node (prior9) [below=0.5cm of priordots] {Uniformitive Prior for 9};
 
-\node (equals) [right=2.5cm of priordots, draw=none, scale=2] {=};
+\node (equals) [right=2cm of priordots, draw=none, scale=2] {=};
 
 \node (postdots) [right=1.25cm of equals] {$\vdots$};
-\node (post0) [above=.1cm of postdots] {2 Posteriors for 0};
-\node (post9) [below=.1cm of postdots] {2 Posteriors for 9};
+\node (post0) [above=.5cm of postdots] {Posterior for 0};
+\node (post9) [below=.5cm of postdots] {Posterior for 9};
 
-\node (testDist) [right=2.5cm of postdots] {10 Uninf Distances \\ 10 Rel Inf Distances};
-\node (testPD) [below=1.5cm of testDist] {Test PD};
+\node (testDist) [right=2.5cm of postdots] {10 Disatnces/PD};
+\node (testPD) [below=2.5cm of testDist] {Test PDs};
 
 \node (classify) [right=.5cm of testDist] {Classify as $\mathrm{argmin}$ Distances};
 
 % Draw edges between nodes
-\draw [arrow] (train) -- (train1);
-\draw [arrow] (train) |- (train2);
 
-\draw [arrow] (train1) -- (priors);
+\draw [arrow] (train) -- (OPD0);
+\draw [arrow] (train) -- (PDdots);
+\draw [arrow] (train) -- (OPD9);
 \draw [arrow] (priors) -| (prior0);
-
-\draw [arrow] (train2) -- (OPD0);
-\draw [arrow] (train2) -- (PDdots);
-\draw [arrow] (train2) -- (OPD9);
 
 %\draw [arrow, bend left=45] (OPD0) to (post0);
 \draw [arrow] (OPD0) -- ++(0,1cm) -- ++(2cm,0) -| (post0);

@@ -472,14 +472,67 @@ cm_ggplot <- function(conf_mat, type) {
     ) 
 }
 nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
-cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
-
+# cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
+conf_matrix_nn_dropout <- nn_dropout_conf_mat$table
+as.data.frame.matrix(conf_matrix_nn_dropout) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
 ```
 
 ## Confusion matrix - NN ridge
 ```{r, fig.dim=c(10,6)}
 nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
-cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
+# cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
+conf_matrix_nn_ridge <- nn_ridge_conf_mat$table
+as.data.frame.matrix(conf_matrix_nn_ridge) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
 ```
 
 ## Proposed Method Analysis
@@ -544,14 +597,14 @@ as.data.frame.matrix(conf_matrix) %>%
     names_to = "predicted_label",
     values_to = "count"
   ) |>
-  # Add a column to determine text color based on the background
+  
   mutate(text_color = if_else(count < 450, "black", "white")) |>
   ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
   geom_tile(color = "gray50", linewidth = 0.5) +
-  # Map the new text_color column to the color aesthetic
+  
   geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
   scale_fill_viridis_c(option = "magma", direction = -1) +
-  # Manually set the colors and remove the unnecessary legend
+  
   scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
   coord_fixed() +
   theme_minimal(base_size = 12) +
@@ -580,7 +633,6 @@ multi_metrics <- metric_set(
   yardstick::f_meas
 )
 
-# Now this will work correctly
 results_for_metrics <- full_tda_01_results |>
   select(true_label, predicted_label) |>
   mutate(
@@ -612,21 +664,15 @@ model_comparison <- resamples(list(RandomForest = all_features_rf_model, SVM = a
 #   scales = list(x = list(rot = 45)))
 tidy_comparison <- model_comparison$values |>
   pivot_longer(
-    # Exclude the 'Resample' column from being pivoted
     cols = -Resample,
     names_to = "key",
     values_to = "value"
   ) |>
-  # This part remains the same
   separate(key, into = c("Model", "Metric"), sep = "~")
 
-# 2. Create the dot plot with ggplot2
 ggplot(tidy_comparison, aes(x = value, y = Model, color = Model)) +
-  # Make points larger and add transparency
   geom_point(size = 4, alpha = 0.2) +
-  # Use a nice, colorblind-friendly color palette
   scale_color_brewer(palette = "Set2") +
-  # Ensure the x-axis doesn't extend unnecessarily far
   scale_x_continuous(limits = c(NA, 1.0)) +
   facet_wrap(~ Metric, ncol = 4) +
   labs(
@@ -644,7 +690,6 @@ ggplot(tidy_comparison, aes(x = value, y = Model, color = Model)) +
     panel.grid.major.y = element_blank(),
     panel.grid.minor.x = element_blank()
   ) +
-  # Add this line to control legend aesthetics
   guides(color = guide_legend(override.aes = list(alpha = 1)))
 ```
 
@@ -698,14 +743,14 @@ as.data.frame.matrix(conf_matrix_tda_full) %>%
     names_to = "predicted_label",
     values_to = "count"
   ) |>
-  # Add a column to determine text color based on the background
+  
   mutate(text_color = if_else(count < 450, "black", "white")) |>
   ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
   geom_tile(color = "gray50", linewidth = 0.5) +
-  # Map the new text_color column to the color aesthetic
+  
   geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
   scale_fill_viridis_c(option = "magma", direction = -1) +
-  # Manually set the colors and remove the unnecessary legend
+  
   scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
   coord_fixed() +
   theme_minimal(base_size = 12) +

@@ -450,7 +450,7 @@ ml_results |>
 
 ## Confusion matrix Heatmap - NN dropout
 ```{r}
-## ggplot function to represent the heatmap
+## ggplot function for confusion matrix heatmap
 cm_ggplot <- function(conf_mat, type) {
   cm_df <- as.data.frame(conf_mat$table)
   ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
@@ -467,6 +467,12 @@ cm_ggplot <- function(conf_mat, type) {
 nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
 cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
 
+```
+
+## Confusion matrix - NN ridge
+```{r}
+nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
+cm_ggplot(nn_ridge_conf_mat, type = "nn_ridge")
 ```
 
 ## Proposed Method Analysis

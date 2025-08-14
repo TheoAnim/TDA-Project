@@ -141,13 +141,26 @@ nn_dropout_accu <- accuracy_check(nn_drop_pred_class, y_test)
 nn_dropout_accu
 
 #### function to get confusion matrix
-confu_mat <- function(predicted_class, test_labels){
+confu_mat <- function(pred_classes, test_labels){
   confusionMatrix(
-    factor(drop(as.numeric(nn_drop_pred_class)), levels = 0:9),
+    factor(drop(as.numeric(pred_classes)), levels = 0:9),
     drop(test_labels)
   )
 }
+## ggplot function to represent the heatmap
+cm_ggplot <- function(conf_mat, type){
+  cm_df <- as.data.frame(conf_mat$table)
+  ggplot(cm_df, aes(Prediction, Reference, fill = Freq))+
+    geom_tile(color = "white")+
+    geom_text(aes(label = Freq), color = "black", size = 4)+
+    scale_fill_gradient(low = "white", high = "steelblue")+
+    labs(title = paste("Confusion matrix heatmap - ", type))
+}
 
+# nn_dropout_conf_mat <- confu_mat(nn_drop_pred_class, test_labels)
+# saveRDS(nn_dropout_conf_mat, "nn_dropout_conf_mat")
+nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
+cm_ggplot(nn_dropout_conf_mat, type = "nn_dropout")
 
 
 #-----------------------------------------------------------------------------------
@@ -179,8 +192,8 @@ nn_reg_hist <- nn_ridge_model |> fit(
 )
 
 plot(nn_ridge_hist)
-
-nn_ridge_accu <- k_argmax(predict(nn_ridge_model, x_test)) |> accuracy_check(y_test)
+nn_ridge_pred_class <- k_argmax(predict(nn_ridge_model, x_test))
+nn_ridge_accu <-  accuracy_check(nn_ridge_pred_class, y_test)
 nn_ridge_accu
 
 # | Step                  | Description                                           |
@@ -191,6 +204,12 @@ nn_ridge_accu
 # | Output Layer         | 10 units, Softmax activation (multi-class classification) |
 # | Model Compilation    | Loss: categorical crossentropy, Optimizer: RMSprop, Metric: accuracy |
 # | Model Training       | 35 epochs, batch size 128, 20% validation split       |
+
+#-----------NN ridge confusion matrix------------------------
+nn_ridge_conf_mat <- confu_mat(nn_ridge_pred_class, test_labels)
+saveRDS(nn_ridge_conf_mat, "nn_ridge_conf_mat")
+nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
+cm_ggplot(nn_ridge_conf_mat, type = "nn_dropout")
 
 
 #-----------------------------------------------------------------------------------

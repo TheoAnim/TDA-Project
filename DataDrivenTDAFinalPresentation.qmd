@@ -93,6 +93,7 @@ library(Rtsne)
 library(keras)
 library(furrr)
 library(yardstick)
+library(caret)
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
@@ -505,22 +506,33 @@ conf_matrix <- table(
 )
 
 as.data.frame.matrix(conf_matrix) %>%
-  mutate(true_label = rownames(.)) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
   pivot_longer(
     cols = -true_label,
     names_to = "predicted_label",
     values_to = "count"
   ) |>
-ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
-  geom_tile(color = "white") +
-  scale_fill_viridis_c(option = "magma", direction = 1) +
-  theme_minimal() +
+  # Add a column to determine text color based on the background
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  # Map the new text_color column to the color aesthetic
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  # Manually set the colors and remove the unnecessary legend
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
   labs(
     x = "Predicted Label",
     y = "True Label",
     fill = "Count"
   ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
 
 # accuracy <- mean(full_results$true_label == full_results$predicted_label, na.rm = TRUE)
 
@@ -551,6 +563,206 @@ multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_labe
 
 # TDA + ML {#sec-TDAML}
 
+## About Filtering
+
+## Analysis
+
+```{r loadallfeatures}
+all_features_train_data <- readRDS("rdss/all_features_train_data.rds")
+all_features_test_data <- readRDS("rdss/all_features_test_data.rds")
+all_features_rf_model <- readRDS("rdss/all_features_rf_model.rds")
+all_features_svm_model<- readRDS("rdss/all_features_svm_model.rds")
+```
+
+```{r modelcomparison, fig.dim=c(10,6)}
+model_comparison <- resamples(list(RandomForest = all_features_rf_model, SVM = all_features_svm_model))
+# dotplot(model_comparison,
+#   scales = list(x = list(rot = 45)))
+tidy_comparison <- model_comparison$values |>
+  pivot_longer(
+    # Exclude the 'Resample' column from being pivoted
+    cols = -Resample,
+    names_to = "key",
+    values_to = "value"
+  ) |>
+  # This part remains the same
+  separate(key, into = c("Model", "Metric"), sep = "~")
+
+# 2. Create the dot plot with ggplot2
+ggplot(tidy_comparison, aes(x = value, y = Model, color = Model)) +
+  # Make points larger and add transparency
+  geom_point(size = 4, alpha = 0.2) +
+  # Use a nice, colorblind-friendly color palette
+  scale_color_brewer(palette = "Set2") +
+  # Ensure the x-axis doesn't extend unnecessarily far
+  scale_x_continuous(limits = c(NA, 1.0)) +
+  facet_wrap(~ Metric, ncol = 4) +
+  labs(
+    x = "Metric Value",
+    y = NULL,
+    color = "Model Type"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, margin = margin(b = 5)),
+    plot.subtitle = element_text(size = 13, margin = margin(b = 15)),
+    strip.text = element_text(face = "bold", size = 10, color = "white"),
+    strip.background = element_rect(fill = "#525252", color = "white"),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  ) +
+  # Add this line to control legend aesthetics
+  guides(color = guide_legend(override.aes = list(alpha = 1)))
+```
+
+:::{.notes}
+* **Accuracy**: The proportion of all predictions that were correct. It's a great starting point but can be misleading for imbalanced datasets.
+    * *Formula*: $(TP + TN) / (TP + TN + FP + FN)$
+
+* **Balanced Accuracy**: The average of Sensitivity and Specificity. It provides a more robust measure when classes are imbalanced by giving equal importance to both positive and negative classes.
+    * *Formula*: $(Sensitivity + Specificity) / 2$
+
+* **Sensitivity (Recall or True Positive Rate)**: Answers: "Of all the actual positive cases, how many did we correctly identify?" High sensitivity is crucial when you cannot afford to miss a positive case (e.g., disease screening).
+    * *Formula*: $TP / (TP + FN)$
+
+* **Specificity (True Negative Rate)**: Answers: "Of all the actual negative cases, how many did we correctly identify?" High specificity is important when a false positive is very costly.
+    * *Formula*: $TN / (TN + FP)$
+
+* **Precision (Positive Predictive Value)**: Answers: "Of all the cases we predicted as positive, how many were actually positive?" High precision matters when the cost of acting on a false positive is high.
+    * *Formula*: $TP / (TP + FP)$
+
+* **Negative Predictive Value (NPV)**: Answers: "Of all the cases we predicted as negative, how many were actually negative?" It's the counterpart to Precision.
+    * *Formula*: $TN / (TN + FN)$
+
+* **F1 Score**: The harmonic mean of Precision and Sensitivity. It provides a single score that balances the concerns of both metrics, making it useful when both false positives and false negatives are important to minimize.
+    * *Formula*: $2 \times (Precision \times Sensitivity) / (Precision + Sensitivity)$
+
+* **Kappa (Cohen's Kappa)**: Measures the agreement between the model's predictions and the actual labels, corrected for the probability of agreement occurring by chance. A score of 1 indicates perfect agreement, 0 indicates agreement equivalent to random chance, and negative values indicate agreement worse than random.
+
+* **Detection Rate**: The proportion of the entire dataset that consists of true positives. It's less commonly used than accuracy but gives a sense of how often the positive case is found in the population.
+    * *Formula*: $TP / (TP + TN + FP + FN)$
+:::
+
+## Analysis
+
+```{r allfeaturesheatmap, fig.dim=c(10,6)}
+test_indices <- 1:10000
+predictions <- predict(all_features_svm_model, newdata = all_features_test_data)
+results <- tibble(
+  true_label = factor(mnist$test$labels[test_indices]),
+  predicted_label = predictions
+)
+
+conf_matrix_tda_full <- table(
+  true_label = results$true_label,
+  predicted_label = results$predicted_label
+)
+
+as.data.frame.matrix(conf_matrix_tda_full) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  # Add a column to determine text color based on the background
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  # Map the new text_color column to the color aesthetic
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  # Manually set the colors and remove the unnecessary legend
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
+
+# final_accuracy <- mean(results$true_label == results$predicted_label, na.rm = TRUE)
+# print(paste("Final Test Set Accuracy (Random Forest):", scales::percent(final_accuracy, accuracy = 0.1)))
+```
+
+## Analysis
+
+```{r varimportance, fig.dim=c(10,6)}
+rf_model_importance <- varImp(all_features_rf_model, scale = TRUE)
+svm_model_importance <- filterVarImp(
+  x = all_features_train_data[, -which(names(all_features_train_data) == "label")],
+  y = all_features_train_data$label
+)
+
+rf_plot <- rf_model_importance$importance |>
+  as.data.frame() %>%
+  mutate(variable = rownames(.)) |>
+  pivot_longer(
+    cols = -variable,
+    names_to = "class",
+    values_to = "importance"
+  ) |>
+  mutate(
+    importance = (importance - min(importance)) / (max(importance) - min(importance))
+  ) |>
+  mutate(variable = fct_reorder(variable, importance, .fun = max, .desc = TRUE)) |>
+  ggplot(aes(x = class, y = variable, fill = importance)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_viridis_c(
+    option = "magma", 
+    direction = -1,
+    limits = c(0, 1)
+  ) +
+  labs(
+    x = "Class",
+    y = "Variable",
+    fill = "Importance",
+    title = "Random Forest Variable Importance"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+svm_plot <- as.data.frame(svm_model_importance) %>%
+  mutate(variable = rownames(.)) |>
+  pivot_longer(
+    cols = -variable,
+    names_to = "class",
+    values_to = "importance"
+  ) |>
+  mutate(
+    importance = (importance - min(importance)) / (max(importance) - min(importance))
+  ) |>
+  mutate(
+    variable = fct_reorder(variable, importance, .fun = max, .desc = TRUE),
+    class = gsub("X", "", class)
+    ) |>
+  ggplot(aes(x = class, y = variable, fill = importance)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  labs(
+    x = "Class",
+    y = NULL, 
+    fill = "Importance",
+    title = "SVM Variable Importance"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_blank() 
+      )
+
+rf_plot + svm_plot + 
+  plot_layout(guides = 'collect')
+
+```
+
 # Results/Future Work {#sec-Results}
 
 
@@ -563,3 +775,5 @@ multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_labe
 
 ::: {#refs .smaller}
 :::
+
+

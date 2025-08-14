@@ -95,17 +95,7 @@ nn_dropout_model |>
   layer_dropout(rate = .3) |>
   layer_dense(units = 10, activation = "softmax")
 
-# nn_dropout_model <- keras_model_sequential(layers = list(
-#   layer_dense(
-#     units = 256,
-#     activation = "relu",
-#     input_shape = c(784)
-#   ),
-#   layer_dropout(rate = 0.4),
-#   layer_dense(units = 128, activation = "relu"),
-#   layer_dropout(rate = 0.3),
-#   layer_dense(units = 10, activation = "softmax")
-# ))
+
 
 summary(nn_dropout_model)
 
@@ -155,12 +145,9 @@ nn_dropout_accu
 #-----------------------------------------------------------------------------------
 # adds a penalty proportional to the sqaure of the weights
 nn_ridge_model <- keras_model_sequential() |>
-  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-  #             kernel_regularizer = regularizer_l2(l = .01)) |>
-  # layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
-    kernel_regularizer = regularizer_l2(l = .001)
+    kernel_regularizer = regularizer_l2(l = .01)
   ) |>
   layer_dense(units = 128, activation = "relu", regularizer_l2(l = .01)) |>
   layer_dense(units = 10, activation = "softmax")
@@ -201,14 +188,11 @@ nn_ridge_accu
 #-----------------------------------------------------------------------------------
 ### adds a penalty proportional to the absolute value of the weights
 nn_lasso_model <- keras_model_sequential() |>
-  # layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train),
-  #             kernel_regularizer = regularizer_l1(l = .01)) |>
-  # layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
   layer_dense(
     units = 256, activation = "relu", input_shape = ncol(x_train),
-    kernel_regularizer = regularizer_l1(l = .001)
+    kernel_regularizer = regularizer_l1(l = .01)
   ) |>
-  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .001)) |>
+  layer_dense(units = 128, activation = "relu", regularizer_l1(l = .01)) |>
   layer_dense(units = 10, activation = "softmax")
 
 summary(nn_lasso_model)

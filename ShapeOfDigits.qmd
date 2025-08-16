@@ -48,6 +48,8 @@ license: "CC BY-NC"
 copyright: 
   holder: Thomas Reinke
   year: 2025
+header-includes:
+  - \definecolor{darkgreen}{HTML}{006400}  
 # include-in-header:
 #       - text: |
 #           /usepackage{amsmath}
@@ -121,9 +123,7 @@ $$
 
 <!-- *A brief overview of the paper.* -->
 
-*This paper ...*[^1] 
-
-[^1]: Example footnote
+*This paper ...*
 
 # Introduction 
 
@@ -142,7 +142,7 @@ The Modified National Institute of Standards and Technology database is a set of
 
 The development of the MNIST dataset stems from early efforts in optical character recognition (OCR), a field of automating the processing of handwritten information like postal codes and census forms. Its lineage can be traced back to the late 1980s with the creation of the USPS database, a collection of 16×16 grayscale images of handwritten zip codes used to train the LeNet neural network. During the same period, the National Institute of Standards and Technology (NIST) was developing its own Special Databases for OCR research, sourcing images from census forms and high-school student samples. One such collection, SD-7, released in 1992, would later form a core part of the MNIST test set.
 
-Challenges in generalizing models across these different datasets, highlighted during a 1992 NIST/Census Bureau competition, revealed biases within the original NIST data. To address these issues, the MNIST database was created in 1994, providing a cleaner, more standardized benchmark for the machine learning community.  The dataset led to the development of several modern variations. These include EMNIST (2017), which extended the character set to include letters; QMNIST (2019), which restored the complete original test set; and Fashion MNIST (2017), a drop-in replacement featuring images of clothing items.
+Challenges in generalizing models across these different datasets, highlighted during a 1992 NIST/Census Bureau competition, revealed biases within the original NIST data. To address these issues, the MNIST database was created in 1994, providing a cleaner, more standardized benchmark for the machine learning community. The dataset led to the development of several modern variations. These include EMNIST (2017), which extended the character set to include letters; QMNIST (2019), which restored the complete original test set; and Fashion MNIST (2017), a drop-in replacement featuring images of clothing items.
 
 ## Related Work
 
@@ -168,17 +168,160 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 
 #### Multinomial Logistic Regression as ML
 
-## Bayesian TDA Methodology
+## Our Bayes TDA Methodology
 
-*latex flowchart*
+Our methodology can be summarized in this flowchart, where the 'Bayesian update' comes from A Bayesian framework for persistent homology. [@Maroulas2020-sp].
+
+```{tikz}
+%| echo: false
+
+\usetikzlibrary{
+    positioning, 
+    arrows.meta, 
+    shapes.geometric, 
+    fit, 
+    calc
+}
+
+\begin{tikzpicture}[
+    % Adjusted node distances for better spacing
+    node distance = 1.2cm and 2cm,
+    every node/.style={
+        draw, 
+        thick, 
+        rounded corners, 
+        align=center, 
+        minimum height=1.3cm,
+        font=\sffamily
+    },
+    data/.style={fill=green!20, text width=3cm},
+    prior/.style={fill=yellow!30, text width=4cm},
+    posterior/.style={fill=blue!20, text width=4cm},
+    result/.style={fill=red!20, text width=3.5cm},
+    process/.style={text width=4cm},
+    arrow/.style={->, >=Stealth, thick},
+    connector/.style={draw=none, font=\sffamily\Huge},
+    % A dedicated style for labels on arrows (edges)
+    edge_label/.style={draw=none, midway, fill=none, font=\sffamily}
+]
+
+% == Column 1 & 2: Data and PD Calculation ==
+% Position nodes in the first two columns
+\node[data] (train) {Train Data \\ (60,000 images)};
+\node[process, right=of train] (calc_pd_train) {Calculate Train PDs \\ (for dim0 \& dim1)};
+
+% Increased vertical distance for a clearer separation of train/test paths
+\node[data, below=3.75cm of train] (test) {Test Data \\ (10,000 images)};
+\node[process, right=of test] (calc_pd_test) {Calculate Test PDs \\ (for dim0 \& dim1)};
+
+% == Column 3: Bayesian Model Training ==
+% Position this block relative to the training data processing nodes
+\node[process, right=of calc_pd_train] (likelihoods) {Likelihood Surfaces from Train PDs \\ (for digits 0-9)};
+%\node[connector, right=of likelihoods] (update_op) {$\otimes$};
+\node[connector, right=of likelihoods] (update_op) {$\odot$};
+\node[prior, right=of update_op] (priors) {Uninformative Priors \\ (for digits 0-9)};
+\node[posterior, below=of update_op] (posteriors) {Posterior Surfaces \\ (for digits 0-9)};
+
+% Bounding box for the Bayesian update process
+\node[draw, dashed, inner sep=0.4cm, fit=(priors) (likelihoods) (update_op) (posteriors), label={[font=\sffamily\bfseries]above:Bayesian Update}] (model_box) {};
+
+% == Column 4: Classification ==
+% Position the classification node vertically centered between its inputs for a balanced look
+\node[process, below=of posteriors] (calc_dist) {Calculate Distances to all Posteriors \\ Distance = $d_{0} + d_{1}$};
+\node[result, below=of calc_dist] (classify) {Classify as \\ argmin(Distance)};
+
+% == Arrows ==
+% Connect nodes with clearer, non-overlapping paths
+\draw[arrow] (train) -- (calc_pd_train);
+\draw[arrow] (test) -- (calc_pd_test);
+
+% Bayesian model flow
+\draw[arrow] (calc_pd_train) -- (likelihoods);
+\draw[arrow] (priors) |- (posteriors);
+\draw[arrow] (likelihoods) |- (posteriors);
+
+% Classification flow
+% Use |- routing to different anchors (north west and south west) to keep lines clean
+\draw[arrow] (posteriors) -- (calc_dist);
+\draw[arrow] (calc_pd_test) -- (calc_dist);
+
+% Arrow with a nicely placed label for the distance formula
+\draw[arrow] (calc_dist) -- (classify);
+    %node[edge_label, right=0.2cm] {Distance = \\ $(1-\lambda)d_{0} + \lambda d_{1}$};
+    %node[edge_label, right=0.2cm] {Distance = $d_{0} + d_{1}$};
+    
+\end{tikzpicture}
+```
 
 ### Cubical Complexes & Persistent Homology
 
-### Marked PPP
+<!-- *Simplices* -> *complexes*(typically veitoris rips, but here cubical) -> *filtration* -> *persistence diagrams* -->
+
+For our methodology, we need to get from an image to a persistence diagram. A 2-dimension image is a map $\mathcal{I}: I \subseteq \mathbb{Z}^2 \xrightarrow{} \mathbb{R}$. An element $v \in I$ is a pixel, and has value $\mathcal{I}(v)$, which is the intensity. We can binarize an image by the map $\mathcal{B}: I \subseteq \mathbb{Z}^2 \xrightarrow{} \{0, 1\}$. With data from a point cloud, we typically build simplicial complexes, but with our data from an image, we will build a cubical complex. Pixels are represented by a $d-cube$, including its faces. With the image represented by a cubical complex $K$, we build a filtration, which is a sequence of nested subcomplexes, using the image's grayscale values. We do this with a series of sublevel sets:
+
+$$
+K_i := \{\sigma \in K | I(\sigma) \leq i\}
+$$
+
+Essentially if a pixel has an intensity less than $i$, the cube representing it is included in the corresponding complex. After applying persistent homology to this filtration, the birth and death 'times' of topological features are tracked across the intensity levels. The persistence diagram $D$, is a multiset, $(b, d, k)$, where each point is a homological feature with dimension $k$, born at intensity $b$, and dies at intensity $d$. Persistence is the length of time a feature lasts, $d - b$. In our case, we can only consider $k=0$, connected components, and $k=1$, loops/one dimension holes. An example persistence diagram is show below of 40 points sampled from a circle. 
+
+```{r expersistence, fig.dim=c(6,3)}
+# example persistence diagram
+
+set.seed(5926720)
+
+df <- tdaunif::sample_circle(n = 40L, sd = .05)
+colnames(df) <- c("x", "y")
+df |> ripserr::vietoris_rips() |>
+  ggplot() +
+  ggtda::stat_persistence(
+    aes(start = birth, end = death,
+        color = factor(dimension), shape = factor(dimension)),
+    size = 2.5,
+    alpha = .75
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.6) +
+  scale_color_viridis_d(end = .7, name = "Dimension") +
+  scale_shape_discrete(name = "Dimension") +
+  labs(title = "Persistence Diagram") + 
+  theme_minimal()
+
+```
+
+From this process we are able to go from an image to a cubical complex to a filtration to a persistence diagram.
+ 
+### Marked Poisson Point Process
+
+<!-- represent persistence diagram as ppp -->
+
+A Poisson Point Process $\Pi$ allows us to model a collection of random points $\{x_1, \ldots, x_n\}$ in a space $\mathbb{X}$, with an intensity measure $\Lambda$. The number of points $N$, is a random variable and follows a Poisson distribution, with mean $\mu = \Lambda(\mathbb{X})$. For a region $A \subseteq X$, $\Lambda(A) = \mathbb{E}[|\Pi \cap A|]$. The mark of each point, $m$, comes from a space $\mathbb{M}$, in our case, the marks will be the dimension $k$. We first have our set of locations $\{x_i\}$, then for each $x_i$, a mark $m_i$ is drawn conditionally & independently from a kernel $\ell(x_i, \cdot)$. 
 
 ### Bayes Update & Guassian representation
 
-## TDA + ML
+Now we wish to incorporate a Bayesian framework to these persistence diagrams represented as point processes. Here we use the tilted representation of the diagram, so instead of $(b, d)$, we use $(b, d-b)$ for a persistence diagram $D$. 
+
+The first part we model is the latent or 'true' underlying persistence diagram $D_x$; we model it by the intensity $\lambda_{D_x}(x)$. $D_x$ is decomposed into two independent parts. $D_{XO}$ are the points that can be observed with probability $\alpha(x)$: $\color{blue}{\alpha(x) \lambda_{\mathcal{D}_X}(x)}$. The second part is for points that are missed or not observed: $\color{red}{(1-\alpha(x)) \lambda_{\mathcal{D}_X}(x)}$.
+
+The second part we model is the observed persistence diagram $D_Y$, also two components. $D_{YO}$ are the points generated from $D_{XO}$, which forms the pair $(\mathcal{D}_{XO}, \mathcal{D}_{YO})$. The connection is via the kernel $\color{brown}{\ell(y|x)}$. It gives the probability density of observing $y \in \mathcal{D}_{YO}$ given a latent point $x \in \mathcal{D}_{XO}$. The other component is that the points arise from noise: $\color{darkgreen}{\lambda_{\mathcal{D}_{YS}}(y)}$.
+
+Now we bring the two parts together. The posterior intensity $\lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x)$ for the latent PD $\mathcal{D}_X$, given $m$ independent observed PDs $D_{Y^1}, \dots, D_{Y^m}$.
+Let $D_{Y^{1:m}} = \cup_{i=1}^m D_{Y^i}$. The posterior intensity is:
+
+$$
+\lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x) = \underbrace{\color{red}{(1 - \alpha(x))\lambda_{\mathcal{D}_X}(x)}}_{\text{Prior Vanished Part}} + \underbrace{\frac{1}{m} \alpha(x) \sum_{i=1}^m \sum_{y \in D_{Y^i}} \frac{ \color{brown}{\ell(y|x)}\color{blue}{ \lambda_{\mathcal{D}_X}(x)}}{\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)} + \color{blue}{\int_{\mathbb{W}} \ell(y|u) \alpha(u) \lambda_{\mathcal{D}_X}(u) du}}}_{\text{Update from Observed Points } y} \quad \text{a.s.}
+$$
+
+Without going into details, Maroulas achieves this is computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$
+
+### Classification
+
+Now that we are able to a posterior persistence diagram, we can do this for each digit 0-9. We can then calculate the Wasserstein distance[^1] from the test persistence diagrams to the posterior diagrams for each dimension. Then we sum the distances for each dimension and classify the test image as the class associated with the minimum distance.
+
+[^1]: Also known as Kantorovich-Rubinstein metric, it is a distance function between probability distributions on a metric space $\mathbb{M}$. $W_q(X,Y) = \left( \inf\limits_{\eta: X \rightarrow{} Y} \sum\limits_{x \in X} \|x - \eta(x)\|^p_\infty \right)^{1/p}$. See more [here](https://en.wikipedia.org/wiki/Wasserstein_metric)
+
+
+
+## TDA & ML
 
 ### Filtering
 
@@ -189,11 +332,11 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 ## Data Summary
 
 - **Data Composition**:
-  - **Training set**: 60,000 images (50% SD-3, 50% SD-7).
-  - **Test set**: 10,000 images (originally 60,000, later reduced to 10k).
+ - **Training set**: 60,000 images (50% SD-3, 50% SD-7).
+ - **Test set**: 10,000 images (originally 60,000, later reduced to 10k).
 - **Image Processing**:
-  - Resized to **28x28 pixels** with anti-aliasing.
-  - Normalized to center of mass alignment.
+ - Resized to **28x28 pixels** with anti-aliasing.
+ - Normalized to center of mass alignment.
 
 ### EDA
 
@@ -207,7 +350,7 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 
 ## Bayes TDA
 
-## TDA + ML
+## TDA & ML
 
 # Discussion and Analysis
 
@@ -247,15 +390,15 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 <!-- current_chunk_label <- knitr::opts_current$get('label') -->
 <!-- all_labels <- all_labels[all_labels != current_chunk_label] -->
 
-<!-- cat("\n")  -->
+<!-- cat("\n") -->
 
 <!-- for (label in all_labels) { -->
-<!--   chunk_code <- knitr::knit_code$get(label) -->
+<!--  chunk_code <- knitr::knit_code$get(label) -->
 
-<!--   if (length(chunk_code) > 0 && !is.null(chunk_code)) { -->
-<!--     cat("```r\n") -->
-<!--     cat(paste(chunk_code, collapse = "\n")) -->
-<!--     cat("\n```\n") -->
-<!--   } -->
+<!--  if (length(chunk_code) > 0 && !is.null(chunk_code)) { -->
+<!--   cat("```r\n") -->
+<!--   cat(paste(chunk_code, collapse = "\n")) -->
+<!--   cat("\n```\n") -->
+<!--  } -->
 <!-- } -->
 <!-- ``` -->

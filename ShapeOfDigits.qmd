@@ -179,7 +179,7 @@ test_images_binarized <- binarize_images(test_images_list)
 
 <!-- *A brief overview of the paper.* -->
 
-*This paper ...*
+This paper compares traditional machine learning models with a Bayesian Topological Data Analytic model to predict the numerical labels of a handwritten digits from the MNIST dataset. It also considers a Topological Data Analysis approach paired with machine learning models, to achieve comparable accuracy to the traditional models with a fraction of the features and offer insight to how the features influence classification. We found our Bayesian model to severely underperform, whereas our machine learning models with topological features performed with high accuracy. Models that accurately classifying digits can be expanded and adapted to other character or image recognition systems. 
 
 # Introduction 
 
@@ -234,16 +234,14 @@ Lasso regularization penalizes the absolute values of weights, encouraging spars
 
 #### Multinomial Logistic Regression as ML
 
-Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. Table 1 provides a summary of the model architecture.
+Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. The table below provides a summary of the model architecture.
 
-Table 1 : Model architectures
-| Model                         | Hidden Layers (units) | Activation Functions         | Regularization             | Output Layer |
-|-------------------------------|---------------------|-----------------------------|----------------------------   |--------------|
-| **Multinomial**               | None                | –                           | None                          | 10           |
-| **Dropout NN**                | 256, 128            | ReLU (hidden), Softmax (out)| Dropout (0.4, 0.3)            | 10           |
-| **Ridge NN (L2)**             | 256, 128            | ReLU (hidden), Softmax (out)| L2 penalty $(\lambda = 0.01)$ | 10           |
-| **Lasso NN (L1)**             | 256, 128            | ReLU (hidden), Softmax (out)| L1 penalty $(\lambda = 0.01)$ | 10           |
-
+| Model                         | Hidden Layers (units) | Activation Functions         | Regularization                 | Output Layer |
+|-------------------------------|-----------------------|------------------------------|--------------------------------|--------------|
+| Multinomial                   | None                  | –                            | None                           | 10           |
+| Dropout NN                    | 256, 128              | ReLU (hidden), Softmax (out) | Dropout (0.4, 0.3)             | 10           |
+| Ridge NN (L2)                 | 256, 128              | ReLU (hidden), Softmax (out) | L2 penalty (\lambda = 0.01) | 10           |
+| Lasso NN (L1)                 | 256, 128              | ReLU (hidden), Softmax (out) | L1 penalty (\lambda = 0.01) | 10           |
 
 All models were trained under identical conditions—30 epochs, batch size of 128, and a validation split of 0.2. This uniform training setup allows for a fair comparison of traditional machine learning methods.
 
@@ -390,7 +388,7 @@ $$
 \lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x) = \underbrace{\color{red}{(1 - \alpha(x))\lambda_{\mathcal{D}_X}(x)}}_{\text{Prior Vanished Part}} + \underbrace{\frac{1}{m} \alpha(x) \sum_{i=1}^m \sum_{y \in D_{Y^i}} \frac{ \color{brown}{\ell(y|x)}\color{blue}{ \lambda_{\mathcal{D}_X}(x)}}{\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)} + \color{blue}{\int_{\mathbb{W}} \ell(y|u) \alpha(u) \lambda_{\mathcal{D}_X}(u) du}}}_{\text{Update from Observed Points } y} \quad \text{a.s.}
 $$
 
-Without going into all of details, Maroulas achieves this is computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$.
+Without going into all of the details in Maroulas' paper, this is achieved computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$.
 
 ### Classification
 
@@ -408,7 +406,7 @@ The filters we used after binarizing the images were height, radial, dilation, e
 
 The height filtration assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle. Radial filtration works similarly, instead of assigning a value base on the distance to a vector, it assigns a value to each pixel based on its distance from a chosen center point. Dilation assigns each pixel a value corresponding to its shortest distance to a foreground pixel, where a foreground pixel is a pixel with an intensity of 1. This has the effect of "growing" or "dilating" the digit. Erosion is the inverse of dilation. It works by taking the dilation of the inverted image. This "shrinks" or "erodes" the digit. Lastly, density assigns each pixel a value based on the number of foreground neighbors within a given radius.
 
-After applying the filter to the binarized image, we have a new grayscale image, which we can get a persistence diagram for. Examples of these filters are shown below. For purposes of visibilty, a colored map is used to represent the grayscale values.
+After applying the filter to the binarized image, we have a new grayscale image, which we can get a persistence diagram for. Examples of these filters are shown below. For purposes of visibility, a colored map is used to represent the grayscale values.
 
 ```{r filtrations, fig.dim=c(6,6)}
 image_index <- which(mnist$train$labels == 8)[100]
@@ -461,8 +459,6 @@ p_density <- plot_filtration(density_filt, "Density (r=3)")
 (p_radial_c + p_radial_b + p_density)
 ```
 
-
-
 # Experiments 
 
 <!-- *Describes the experiments performed, including details on the data used.* -->
@@ -473,19 +469,28 @@ The MNIST data set is composed of the training set of 60,000 images (50% SD-3, 5
 
 ### EDA
 
+We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE)[^2] as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
 
-We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers to not be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. 
-<!-- ======= -->
-<!-- We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE)[^2] as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively. -->
-
-<!-- [^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details. -->
+[^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
 
 ```{r pixel_intensity, fig.cap="Distribution of digit labels and pixel intensity on training images"}
 #----label distribution-----------------
 train_df <- readRDS("train_df")
-label_dist <- ggplot(train_df, aes(labels, fill = labels))+
-  geom_bar()+
-  labs(fill = "digit")
+label_dist <- ggplot(train_df, aes(labels, fill = labels)) +
+  geom_bar() +
+  labs(fill = "digit") +
+  theme(legend.position = "none")
+
+```
+
+```{r pixel_intensity2, fig.dim=c(6,3)}
+#----------------------------------------------------------
+#-----------Pixel intensity representation-----------------
+#----------------------------------------------------------
+# train_df_long <- train_df |>
+#   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
+# saveRDS(train_df_long, "train_df_long.rds")
+
 #----- pixel intensity-----------
 train_df_long <- readRDS("train_df_long.rds")
 pixel <- ggplot(train_df_long) +
@@ -504,63 +509,6 @@ df_tsne <- readRDS("df_tsne")
 ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
   geom_point(alpha = .5)
 ```
-We also use t-Distributed Stochastic Neighbor Embedding(t-SNE) as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. Figure 2 shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
-
-
-<!-- ```{r pixel_intensity, fig.dim=c(6,3)} -->
-<!-- #---------------------------------------------------------- -->
-<!-- #-----------Pixel intensity representation----------------- -->
-<!-- #---------------------------------------------------------- -->
-<!-- # train_df_long <- train_df |> -->
-<!-- #   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity") -->
-<!-- # saveRDS(train_df_long, "train_df_long.rds") -->
-<!-- train_df_long <- readRDS("train_df_long.rds") -->
-
-<!-- ggplot(train_df_long) + -->
-<!--   geom_histogram( -->
-<!--     aes(intensity), -->
-<!--     bins = 30, -->
-<!--     fill = "#2C7FB8", -->
-<!--     color = "white", -->
-<!--     alpha = 0.8 -->
-<!--   )  -->
-<!-- # ggplot(train_df_long) + -->
-<!-- #   geom_histogram( -->
-<!-- #     aes(intensity), -->
-<!-- #     bins = 30, -->
-<!-- #     fill = "#2C7FB8", -->
-<!-- #     color = "white", -->
-<!-- #     alpha = 0.8 -->
-<!-- #   ) + -->
-<!-- #   scale_y_log10() + -->
-<!-- #   labs(y = "Count (log scale)") -->
-
-<!-- ``` -->
-
-<!-- ```{r tnse, fig.dim=c(6,6)} -->
-<!-- #------------------------------------------------------------ -->
-<!-- #----------------distribution of mnist training-------------- -->
-<!-- #------------------------------------------------------------ -->
-<!-- #normalized pixel values and apply t-SNE -->
-<!-- # tsne_results <- Rtsne( -->
-<!-- #   train_images, -->
-<!-- #   dim = 2, -->
-<!-- #   perplexity = 30, -->
-<!-- #   max_iter = 1000 -->
-<!-- # ) -->
-<!-- # df_tsne <- tibble(Dim1 = tsne_results$Y[, 1], -->
-<!-- #                   Dim2 = tsne_results$Y[, 2], -->
-<!-- #                   digit = train_df$labels) -->
-<!-- # -->
-<!-- # saveRDS(df_tsne, "df_tsne") -->
-<!-- df_tsne <- readRDS("df_tsne") -->
-<!-- ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) + -->
-<!--   geom_point(alpha = .25) -->
-<!-- ``` -->
-
-<!-- <!-- Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space. --> -->
-
-
 
 ## Model Perfomance
 
@@ -927,12 +875,24 @@ rf_plot + svm_plot +
 
 # Discussion
 
-*Comparing the models*
+<!-- *Comparing the models* -->
+
+Traditional machine learning methods performed very well, achieving 99% accuracy using all 784 pixels as predictors. However, our Bayesian TDA approach did not perform as well as we had hoped. The posterior densities for the persistence diagrams were not distinct enough to allow for accurate classification. The main issue is that the posterior densities for the 0 dimension were very similar across digits, making it difficult to discriminate between them. The 1st dimension was better, but not enough for discrimination. Another issue is that for a test image, if no features were detected, it was the null model, which was closest to the digit '1'. This is something we would expect for {1, 2, 3, 4, 5, 7}. 
+
+A better approach likely would have been not using the Bayesian framework and start with a simple model. For example, use persistence diagrams to obtain the Betti number[^3] for each dimension, which should split up the digits into 3 sub classes, {1, 2, 3, 4, 5, 7}, {0, 6, 9}, {8}. Then find another feature to discriminate within each subclass.
+
+Using TDA incorporated with machine learning models, we were able to achieve 93.1% accuracy with only 23 features. This was a significant improvement to our methodology, and gives similar results to the paper it was based on [@DBLP:journals/corr/abs-1910-08345]. The most important variable in both the random forest and SVM model was the grayscale 0 dimensional persistent entropy.
+
+[^3]: Informally, the kth Betti number refers to the number of k-dimensional holes on a topological surface. See more [here](https://en.wikipedia.org/wiki/Betti_number)
+
 
 # Conclusion
 
 <!-- what the project did, what models were used, potential future work -->
 
+In this project, we used a Bayesian topological data analytic approach to digit classification in the MNIST handwritten dataset and compared it with traditional machine learning models. We also used TDA as a dimension reduction technique to pair with machine learning models. We found that the Bayesian TDA approach did not perform well. However, using TDA with machine learning approach achieved 93.1% accuracy with only 23 features.
+
+Future work could involve using a simpler model with Betti numbers or other topological features. For the TDA & machine learning model, other machine learning models could be explored. Better fine tuning on the parameters may bump up the accuracy. Including more features and performing feature selection may also help model performance.
 
 \newpage
 
@@ -944,14 +904,14 @@ rf_plot + svm_plot +
 
 <!-- *Gives properly formatted references to other scholarly work that this work is built on. Note that the references should be scholarly, which means things like refereed conference and journal articles. Importantly, that rules out things like most websites, basic textbooks, and press articles.* -->
 
-<!-- \newpage -->
+\newpage
 
-<!-- # Code Appendix -->
+# Code Appendix
 
-<!-- ```{r ref.label=knitr::all_labels()} -->
-<!-- #| echo: true -->
-<!-- #| eval: false -->
-<!-- ``` -->
+```{r ref.label=knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
 
 \newpage
 

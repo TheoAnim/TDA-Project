@@ -1,0 +1,247 @@
+---
+title: "The Shape of Digits"
+subtitle: "A Bayesian Topological Data Analytic Approach to Classification of Handwritten Digits"
+date: today
+date-format: "MMMM D, YYYY"
+authors:
+  - name: Thomas Reinke
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+    # email: thomas_reinke1@baylor.edu
+  - name: Theophilus A. Bediako
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+  - name: Daniel Lim
+    affiliation: 
+      - name: Baylor University
+        department: Statistical Science
+        # city: Waco
+        # state: TX
+        # country: US
+        url: https://www.baylor.edu
+format: 
+  pdf:
+    toc: true
+    number-sections: true
+    toc-depth: 2
+    number-depth: 3
+    colorlinks: true
+    fontsize: 11pt
+    geometry: 
+      - top=20mm
+      - left=20mm
+editor: 
+  markdown: 
+    wrap: 72
+bibliography: references.bibtex
+license: "CC BY-NC"
+copyright: 
+  holder: Thomas Reinke
+  year: 2025
+# include-in-header:
+#       - text: |
+#           /usepackage{amsmath}
+---
+
+```{r, setup}
+#| include: false
+#| message: false
+library(quarto)
+library(knitr)
+library(tidyverse)
+library(conflicted)
+library(janitor)
+library(ggtda)
+# library(TDAvis)
+library(patchwork)
+library(gganimate)
+library(ggforce)
+library(simplextree) 
+library(gifski)
+library(magick)  
+library(ripserr)
+library(reshape2)
+# remotes::install_github("maroulaslab/BayesTDA") Use this if package ‘BayesTDA’ is not available for this version of R
+library(BayesTDA)
+library(TDAstats)
+library(mvtnorm)
+library(kableExtra)
+library(plotly)
+library(DiagrammeR)
+library(transport)
+library(TDA)
+library(RColorBrewer)
+library(Rtsne)
+library(keras)
+library(furrr)
+library(yardstick)
+library(caret)
+library(imager)
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("select", "dplyr")
+conflicted::conflicts_prefer(ggtda::geom_simplicial_complex)
+conflicted::conflicts_prefer(plotly::layout)
+conflicts_prefer(magrittr::set_names)
+knitr::opts_chunk$set(
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  echo = FALSE,
+  tidy.opts = list(width.cutoff = 100),
+  tidy = FALSE,
+  fig.align = "center"
+)
+ggplot2::theme_set(ggplot2::theme_minimal())
+ggplot2::theme_update(panel.grid.minor = ggplot2::element_blank())
+
+#------------------------------------------------------------#
+```
+
+::: {.content-hidden}
+$$
+{{< include quarto-assets/_macros.tex >}}
+$$
+:::
+
+
+\newpage
+
+# Abstract 
+
+<!-- *A brief overview of the paper.* -->
+
+*This paper ...*[^1] 
+
+[^1]: Example footnote
+
+# Introduction 
+
+<!-- *Describes the motivation of this work and outlines the rest of the paper.* -->
+
+*The motivation for this work*
+"Data has shape,  shape has meaning, and meaning brings value."  - Gunnar Carlsson
+
+# Background and Related Work
+
+<!-- *Describes what other researchers in the same area have done, and how they perhaps could be improved.* --> 
+
+*about mnist* *MNIST Overview*
+
+* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
+* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
+* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
+* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@Nicolau2011]
+* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
+* Classification and Evaluation of Machine Learning Algorithms on the MNIST Dataset [@yeboah2025classification]
+
+# Methodology 
+
+<!-- *Describes what is the approach taken in this paper.* -->
+
+## Traditional Machine Learning 
+
+### Neural Networks
+
+#### Dropout
+
+#### Ridge
+
+#### Lasso
+
+#### Multinomial Logistic Regression as ML
+
+## Bayesian TDA Methodology
+
+*latex flowchart*
+
+### Cubical Complexes & Persistent Homology
+
+### Marked PPP
+
+### Bayes Update & Guassian representation
+
+## TDA + ML
+
+### Filtering
+
+# Experiments 
+
+<!-- *Describes the experiments performed, including details on the data used.* -->
+
+## Data Summary
+
+### EDA
+
+## NN dropout
+
+## NN Ridge
+
+## NN Lasso
+
+## Multinomial Logistic
+
+## Bayes TDA
+
+## TDA + ML
+
+# Discussion and Analysis
+
+*Comparing the models*
+
+# Conclusion
+
+<!-- what the project did, what models were used, potential future work -->
+
+
+\newpage
+
+# References
+
+::: {#refs}
+:::
+
+
+<!-- *Gives properly formatted references to other scholarly work that this work is built on. Note that the references should be scholarly, which means things like refereed conference and journal articles. Importantly, that rules out things like most websites, basic textbooks, and press articles.* -->
+
+<!-- \newpage -->
+
+<!-- # Code Appendix -->
+
+<!-- ```{r ref.label=knitr::all_labels()} -->
+<!-- #| echo: true -->
+<!-- #| eval: false -->
+<!-- ``` -->
+
+\newpage
+
+<!-- # Code Appendix -->
+
+<!-- ```{r appendix-code-lister, echo=FALSE, results='asis'} -->
+<!-- all_labels <- knitr::all_labels() -->
+
+<!-- current_chunk_label <- knitr::opts_current$get('label') -->
+<!-- all_labels <- all_labels[all_labels != current_chunk_label] -->
+
+<!-- cat("\n")  -->
+
+<!-- for (label in all_labels) { -->
+<!--   chunk_code <- knitr::knit_code$get(label) -->
+
+<!--   if (length(chunk_code) > 0 && !is.null(chunk_code)) { -->
+<!--     cat("```r\n") -->
+<!--     cat(paste(chunk_code, collapse = "\n")) -->
+<!--     cat("\n```\n") -->
+<!--   } -->
+<!-- } -->
+<!-- ``` -->

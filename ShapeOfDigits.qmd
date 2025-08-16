@@ -234,16 +234,14 @@ Lasso regularization penalizes the absolute values of weights, encouraging spars
 
 #### Multinomial Logistic Regression as ML
 
-Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. Table 1 provides a summary of the model architecture.
+Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. The table below provides a summary of the model architecture.
 
-### Table 1. Model architectures
-
-| Model                         | Hidden Layers (units) | Activation Functions         | Regularization             | Output Layer |
-|-------------------------------|---------------------|-----------------------------|----------------------------   |--------------|
-| **Multinomial**               | None                | –                           | None                          | 10           |
-| **Dropout NN**                | 256, 128            | ReLU (hidden), Softmax (out)| Dropout (0.4, 0.3)            | 10           |
-| **Ridge NN (L2)**             | 256, 128            | ReLU (hidden), Softmax (out)| L2 penalty $(\lambda = 0.01)$ | 10           |
-| **Lasso NN (L1)**             | 256, 128            | ReLU (hidden), Softmax (out)| L1 penalty $(\lambda = 0.01)$ | 10           |
+| Model                         | Hidden Layers (units) | Activation Functions         | Regularization                 | Output Layer |
+|-------------------------------|-----------------------|------------------------------|--------------------------------|--------------|
+| Multinomial                   | None                  | –                            | None                           | 10           |
+| Dropout NN                    | 256, 128              | ReLU (hidden), Softmax (out) | Dropout (0.4, 0.3)             | 10           |
+| Ridge NN (L2)                 | 256, 128              | ReLU (hidden), Softmax (out) | L2 penalty (\lambda = 0.01) | 10           |
+| Lasso NN (L1)                 | 256, 128              | ReLU (hidden), Softmax (out) | L1 penalty (\lambda = 0.01) | 10           |
 
 All models were trained under identical conditions—30 epochs, batch size of 128, and a validation split of 0.2. This uniform training setup allows for a fair comparison of traditional machine learning methods.
 
@@ -475,73 +473,42 @@ We examined the MNIST training dataset in terms of label distribution, pixel int
 
 [^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
 
-```{r dist_labels, fig.dim=c(6,3)}
-#--------------------------------------------------------
-#----------Distribution of training labels---------------
-#--------------------------------------------------------
-#first run the qmd file
-train_df <- train$images |> as.data.frame()
-train_df$labels <- train$labels |> as.factor()
-
-
-ggplot(train_df, aes(labels, fill = labels))+
-  geom_bar()+
-  labs(fill = "digit")
+```{r pixel_intensity, fig.cap="Distribution of digit labels and pixel intensity on training images"}
+#----label distribution-----------------
+train_df <- readRDS("train_df")
+label_dist <- ggplot(train_df, aes(labels, fill = labels)) +
+  geom_bar() +
+  labs(fill = "digit") +
+  theme(legend.position = "none")
 
 ```
 
-```{r pixel_intensity, fig.dim=c(6,3)}
+```{r pixel_intensity2, fig.dim=c(6,3)}
 #----------------------------------------------------------
 #-----------Pixel intensity representation-----------------
 #----------------------------------------------------------
 # train_df_long <- train_df |>
 #   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
 # saveRDS(train_df_long, "train_df_long.rds")
-train_df_long <- readRDS("train_df_long.rds")
 
-ggplot(train_df_long) +
+#----- pixel intensity-----------
+train_df_long <- readRDS("train_df_long.rds")
+pixel <- ggplot(train_df_long) +
   geom_histogram(
     aes(intensity),
     bins = 30,
     fill = "#2C7FB8",
     color = "white",
     alpha = 0.8
-  ) 
-# ggplot(train_df_long) +
-#   geom_histogram(
-#     aes(intensity),
-#     bins = 30,
-#     fill = "#2C7FB8",
-#     color = "white",
-#     alpha = 0.8
-#   ) +
-#   scale_y_log10() +
-#   labs(y = "Count (log scale)")
-
+  )
+label_dist + pixel
 ```
 
-```{r tnse, fig.dim=c(6,6)}
-#------------------------------------------------------------
-#----------------distribution of mnist training--------------
-#------------------------------------------------------------
-#normalized pixel values and apply t-SNE
-# tsne_results <- Rtsne(
-#   train_images,
-#   dim = 2,
-#   perplexity = 30,
-#   max_iter = 1000
-# )
-# df_tsne <- tibble(Dim1 = tsne_results$Y[, 1],
-#                   Dim2 = tsne_results$Y[, 2],
-#                   digit = train_df$labels)
-#
-# saveRDS(df_tsne, "df_tsne")
+```{r tsne, fig.cap="Training Data tSNE Visualization"}
 df_tsne <- readRDS("df_tsne")
 ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
-  geom_point(alpha = .25)
+  geom_point(alpha = .5)
 ```
-
-<!-- Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space. -->
 
 ## Model Perfomance
 

@@ -187,9 +187,7 @@ test_images_binarized <- binarize_images(test_images_list)
 
 The motivation for this work was to compare and examine how dimension reduction via topological data analysis can be used with machine learning and classification models. Algebraic topologist, Gunnar Carlsson, has a quote, "Data has shape, shape has meaning, and meaning brings value." The work in this paper follows this idea, that if there is inherent structure present in data, it can be exploited to aid in modeling. 
 
-The Modified National Institute of Standards and Technology database is a set of handwritten digits that is frequently used to train and test image processing models. Our goal is to classify handwritten digits to their correct numeric label. We compared model performance primarily on accuracy, and secondly on the number of features or predictors. First, we want to build an accurate model that can discriminate between digits. Similar to the idea of parsimony in model selection, if two models have comparable accuracy, we will favor the model trained on fewer features. 
-
-<!-- \textcolor{red}{We also consider the ability to do variable importance on predictors of a model.} -->
+The Modified National Institute of Standards and Technology database is a set of handwritten digits that is frequently used to train and test image processing models. Our goal is to classify handwritten digits to their correct numeric label. We compared model performance primarily on accuracy, and secondly on the number of features or predictors. First, we want to build an accurate model that can discriminate between digits. Similar to the idea of parsimony in model selection, if two models have comparable accuracy, we will favor the model trained on fewer features. We also consider the ability of TDA-based models to assess the importance of individual predictors, providing insights into which features most influence MNIST classification.
 
 
 # Background and Related Work
@@ -220,7 +218,7 @@ In order to evaluate the value added by TDA-based methods, it is essential to be
 
 ### Neural Networks
 
-The neural network framework considered in this project is the feedforward neural network. It is one of the most widely used architectures for supervised learning. In a feedforward network, information flows in a single direction—from the input layer, through one or more hidden layers, to the output layer—without cycles or feedback connections. The input layer consists of neurons corresponding to the features of the data. One or more hidden layers are placed between the input and output layers, enabling the network to learn complex and non-linear patterns. Finally, the output layer produces the classification results, with the number of neurons equal to the number of digit classes.[@yeboah2025classification]
+The neural network framework considered in this project is the feedforward neural network. It is one of the most widely used architectures for supervised learning. In a feedforward network, information flows in a single direction—from the input layer, through one or more hidden layers, to the output layer—without cycles or feedback connections. The input layer consists of neurons corresponding to the features of the data. One or more hidden layers are placed between the input and output layers, enabling the network to learn complex and non-linear patterns. Finally, the output layer produces the classification results, with the number of neurons equal to the number of digit classes.
 
 #### Dropout
 
@@ -242,10 +240,10 @@ Multinomial logistic regression, also known as softmax regression, provides a li
 
 | Model                         | Hidden Layers (units) | Activation Functions         | Regularization             | Output Layer |
 |-------------------------------|---------------------|-----------------------------|----------------------------   |--------------|
-| **Multinomial**      | None                | –                           | None                          | 10 (Softmax) |
-| **Dropout NN**                | 256, 128            | ReLU (hidden), Softmax (out)| Dropout (0.4, 0.3)            | 10 (Softmax) |
-| **Ridge NN (L2)**             | 256, 128            | ReLU (hidden), Softmax (out)| L2 penalty $(\lambda = 0.01)$ | 10 (Softmax) |
-| **Lasso NN (L1)**             | 256, 128            | ReLU (hidden), Softmax (out)| L1 penalty $(\lambda = 0.01)$ | 10 (Softmax) |
+| **Multinomial**               | None                | –                           | None                          | 10           |
+| **Dropout NN**                | 256, 128            | ReLU (hidden), Softmax (out)| Dropout (0.4, 0.3)            | 10           |
+| **Ridge NN (L2)**             | 256, 128            | ReLU (hidden), Softmax (out)| L2 penalty $(\lambda = 0.01)$ | 10           |
+| **Lasso NN (L1)**             | 256, 128            | ReLU (hidden), Softmax (out)| L1 penalty $(\lambda = 0.01)$ | 10           |
 
 All models were trained under identical conditions—30 epochs, batch size of 128, and a validation split of 0.2. This uniform training setup allows for a fair comparison of traditional machine learning methods.
 
@@ -475,6 +473,10 @@ The MNIST data set is composed of the training set of 60,000 images (50% SD-3, 5
 
 ### EDA
 
+We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE)[^2] as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
+
+[^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
+
 ```{r dist_labels, fig.dim=c(6,3)}
 #--------------------------------------------------------
 #----------Distribution of training labels---------------
@@ -482,6 +484,7 @@ The MNIST data set is composed of the training set of 60,000 images (50% SD-3, 5
 #first run the qmd file
 train_df <- train$images |> as.data.frame()
 train_df$labels <- train$labels |> as.factor()
+
 
 ggplot(train_df, aes(labels, fill = labels))+
   geom_bar()+
@@ -520,8 +523,6 @@ ggplot(train_df_long) +
 
 ```
 
-We can see there are around 6000 digits in each class, so class imbalance is not an issue here. Most pixel values are zero, but out of the 784 pixels, 703 have an intensity greater than 0 at least once.
-
 ```{r tnse, fig.dim=c(6,6)}
 #------------------------------------------------------------
 #----------------distribution of mnist training--------------
@@ -543,9 +544,9 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
   geom_point(alpha = .25)
 ```
 
-Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space.
+<!-- Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space. -->
 
-[^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
+
 
 ## Model Perfomance
 

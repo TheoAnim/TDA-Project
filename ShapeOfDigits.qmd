@@ -156,9 +156,13 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 
 <!-- *Describes what is the approach taken in this paper.* -->
 
-## Traditional Machine Learning 
+## Traditional Machine Learning
+
+In order to evaluate the value added by TDA-based methods, it is essential to benchmark them against well-established approaches. In this context, we consider a range of traditional machine learning (ML) methods, including neural networks with different regularization schemes and classical multinomial logistic regression. 
 
 ### Neural Networks
+
+The neural network framework considered in this project is the feedforward neural network. It is one of the most widely used architectures for supervised learning. In a feedforward network, information flows in a single direction—from the input layer, through one or more hidden layers, to the output layer—without cycles or feedback connections. The input layer consists of neurons corresponding to the features of the data. One or more hidden layers are placed between the input and output layers, enabling the network to learn complex and non-linear patterns. Finally, the output layer produces the classification results, with the number of neurons equal to the number of digit classes.
 
 #### Dropout
 

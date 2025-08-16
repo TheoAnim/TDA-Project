@@ -473,8 +473,8 @@ The MNIST data set is composed of the training set of 60,000 images (50% SD-3, 5
 
 ### EDA
 
-<<<<<<< HEAD
-We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. 
+
+We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers to not be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. 
 <!-- ======= -->
 <!-- We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE)[^2] as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively. -->
 

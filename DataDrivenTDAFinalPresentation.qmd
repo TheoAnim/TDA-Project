@@ -204,6 +204,7 @@ test_images_binarized <- binarize_images(test_images_list)
 train_df <- train$images |> as.data.frame()
 train_df$labels <- train$labels |> as.factor()
 
+
 ggplot(train_df, aes(labels, fill = labels))+
   geom_bar()+
   labs(fill = "digit")

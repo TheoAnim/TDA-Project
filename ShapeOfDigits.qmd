@@ -236,14 +236,14 @@ Lasso regularization penalizes the absolute values of weights, encouraging spars
 
 Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. Table 1 provides a summary of the model architecture.
 
-### Table 1. Model architectures
-
+Table 1 : Model architectures
 | Model                         | Hidden Layers (units) | Activation Functions         | Regularization             | Output Layer |
 |-------------------------------|---------------------|-----------------------------|----------------------------   |--------------|
 | **Multinomial**               | None                | –                           | None                          | 10           |
 | **Dropout NN**                | 256, 128            | ReLU (hidden), Softmax (out)| Dropout (0.4, 0.3)            | 10           |
 | **Ridge NN (L2)**             | 256, 128            | ReLU (hidden), Softmax (out)| L2 penalty $(\lambda = 0.01)$ | 10           |
 | **Lasso NN (L1)**             | 256, 128            | ReLU (hidden), Softmax (out)| L1 penalty $(\lambda = 0.01)$ | 10           |
+
 
 All models were trained under identical conditions—30 epochs, batch size of 128, and a validation split of 0.2. This uniform training setup allows for a fair comparison of traditional machine learning methods.
 
@@ -478,8 +478,33 @@ p_density <- plot_filtration(density_filt, "Density (r=3)")
 
 ### EDA
 
-We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE) as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The Figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
+We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. 
 
+```{r pixel_intensity, fig.cap="Distribution of digit labels and pixel intensity on training images"}
+#----label distribution-----------------
+train_df <- readRDS("train_df")
+label_dist <- ggplot(train_df, aes(labels, fill = labels))+
+  geom_bar()+
+  labs(fill = "digit")
+#----- pixel intensity-----------
+train_df_long <- readRDS("train_df_long.rds")
+pixel <- ggplot(train_df_long) +
+  geom_histogram(
+    aes(intensity),
+    bins = 30,
+    fill = "#2C7FB8",
+    color = "white",
+    alpha = 0.8
+  )
+label_dist + pixel
+```
+
+```{r tsne, fig.cap="Training Data tSNE Visualization"}
+df_tsne <- readRDS("df_tsne")
+ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
+  geom_point(alpha = .5)
+```
+We also use t-Distributed Stochastic Neighbor Embedding(t-SNE) as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. Figure 2 shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
 
 ## NN dropout
 

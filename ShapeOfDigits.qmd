@@ -116,6 +116,62 @@ $$
 $$
 :::
 
+```{r load_data}
+#--------------------------------------------------------
+#----------Load & Preprocess Data------------------------
+#--------------------------------------------------------
+mnist <- readRDS(file = "mnist_dataset")
+
+train <- mnist$train
+test <- mnist$test
+
+train_images <- train$images
+train_labels <- as.factor(train$labels)  
+
+test_images <- test$images  
+test_labels <- as.factor(test$labels)
+
+train_images <- train_images / 255
+test_images <- test_images / 255
+
+train_images_list <- lapply(1:nrow(train_images), function(i) {
+  matrix(train_images[i, ], nrow = 28) |> t()
+})
+
+test_images_list <- lapply(1:nrow(test_images), function(i) {
+  matrix(test_images[i, ], nrow = 28) |> t()
+})
+
+plot_digit <- \(image_list = train_images_list, image_index = NULL, image_df = NULL, melted = FALSE){
+  if(!melted){
+    image_df <- melt(image_list[image_index])
+    colnames(image_df) <- c("y", "x", "value")
+  }
+  ggplot(image_df, aes(x = x, y = y, fill = value)) + 
+    geom_raster() +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_reverse() + 
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none") 
+}
+
+# plot_digit(image_index = 8)
+# paste0("Label: ", train$labels[8])
+
+binarize_images <- function(images_list, threshold = 0.5) {
+  lapply(images_list, function(mat) {
+    ifelse(mat < threshold, 0, 1)
+  })
+}
+
+train_images_binarized <- binarize_images(train_images_list)
+test_images_binarized <- binarize_images(test_images_list)
+
+# plot_digit(image_index = 8) + plot_digit(train_images_binarized, image_index = 8)
+
+#------------------------------------------------------------#
+```
 
 \newpage
 
@@ -168,7 +224,7 @@ We try an integration of a Bayesian framework to the TDA methodology. This is in
 
 #### Multinomial Logistic Regression as ML
 
-## Our Bayes TDA Methodology
+## Our Bayes TDA Classification
 
 Our methodology can be summarized in this flowchart, where the 'Bayesian update' comes from A Bayesian framework for persistent homology. [@Maroulas2020-sp].
 
@@ -311,7 +367,7 @@ $$
 \lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x) = \underbrace{\color{red}{(1 - \alpha(x))\lambda_{\mathcal{D}_X}(x)}}_{\text{Prior Vanished Part}} + \underbrace{\frac{1}{m} \alpha(x) \sum_{i=1}^m \sum_{y \in D_{Y^i}} \frac{ \color{brown}{\ell(y|x)}\color{blue}{ \lambda_{\mathcal{D}_X}(x)}}{\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)} + \color{blue}{\int_{\mathbb{W}} \ell(y|u) \alpha(u) \lambda_{\mathcal{D}_X}(u) du}}}_{\text{Update from Observed Points } y} \quad \text{a.s.}
 $$
 
-Without going into details, Maroulas achieves this is computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$
+Without going into all of details, Maroulas achieves this is computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$.
 
 ### Classification
 
@@ -319,11 +375,70 @@ Now that we are able to a posterior persistence diagram, we can do this for each
 
 [^1]: Also known as Kantorovich-Rubinstein metric, it is a distance function between probability distributions on a metric space $\mathbb{M}$. $W_q(X,Y) = \left( \inf\limits_{\eta: X \rightarrow{} Y} \sum\limits_{x \in X} \|x - \eta(x)\|^p_\infty \right)^{1/p}$. See more [here](https://en.wikipedia.org/wiki/Wasserstein_metric)
 
-
-
 ## TDA & ML
 
+With our Bayes TDA classification not being as successful as we would've liked, we were also interested in using TDA as a dimension reduction technique to pair with machine learning models. This approach uses the persistence diagram of an image as a predictor. Besides using the grayscale image, we can binarize the image, apply a filter that results in a different grayscale image for the digit. This allows us to generate multiple features for each observation.
+
 ### Filtering
+
+The filters we used after binarizing the images were height, radial, dilation, erosion, and density. 
+
+The height filtration assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle. Radial filtration works similarly, instead of assigning a value base on the distance to a vector, it assigns a value to each pixel based on its distance from a chosen center point. Dilation assigns each pixel a value corresponding to its shortest distance to a foreground pixel, where a foreground pixel is a pixel with an intensity of 1. This has the effect of "growing" or "dilating" the digit. Erosion is the inverse of dilation. It works by taking the dilation of the inverted image. This "shrinks" or "erodes" the digit. Lastly, density assigns each pixel a value based on the number of foreground neighbors within a given radius.
+
+After applying the filter to the binarized image, we have a new grayscale image, which we can get a persistence diagram for. Examples of these filters are shown below. For purposes of visibilty, a colored map is used to represent the grayscale values.
+
+```{r filtrations, fig.dim=c(6,6)}
+image_index <- which(mnist$train$labels == 8)[100]
+image_matrix <- matrix(mnist$train$images[image_index, ], nrow = 28, byrow = TRUE)
+
+binary_image <- ifelse(image_matrix > 0.4, 1, 0)
+img_c <- as.cimg(binary_image)
+img_c_inv <- as.cimg(1 - binary_image)
+
+coords <- as.matrix(expand.grid(y = 1:28, x = 1:28))
+
+height_filt_td <- matrix(coords %*% c(0, 1), nrow = 28, byrow = TRUE) * binary_image
+height_filt_lr <- matrix(coords %*% c(1, 0), nrow = 28, byrow = TRUE) * binary_image
+
+radial_filt_c <- matrix(sqrt(rowSums(sweep(coords, 2, c(14, 14), "-")^2)), nrow = 28, byrow = TRUE) * binary_image
+radial_filt_b <- matrix(sqrt(rowSums(sweep(coords, 2, c(14, 28), "-")^2)), nrow = 28, byrow = TRUE) * binary_image
+
+dilation_filt <- as.matrix(distance_transform(img_c, 1))
+erosion_filt <- as.matrix(distance_transform(img_c_inv, 1))
+density_filt <- as.matrix(boxblur(img_c, 3))
+
+plot_filtration <- function(data_matrix, title) {
+  as.data.frame(data_matrix) |>
+    mutate(y = row_number()) |>
+    pivot_longer(-y, names_to = "x", values_to = "value") |>
+    mutate(x = as.integer(gsub("V", "", x))) |>
+    ggplot(aes(x = x, y = y, fill = value)) +
+    geom_tile() +
+    scale_y_reverse() +
+    coord_equal() +
+    scale_fill_viridis_c(option = "magma", direction = -1) +
+    # scale_fill_gradient(low = "white", high = "black", na.value = "white") +
+    theme_void() +
+    labs(title = title) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"), legend.position = "none")
+}
+
+p_orig <- plot_filtration(image_matrix, "Original Grayscale") + scale_fill_gradient(low = "white", high = "black", na.value = "white")
+p_bin <- plot_filtration(binary_image, "Binarized") + scale_fill_gradient(low = "white", high = "black", na.value = "white")
+p_height_td <- plot_filtration(height_filt_td, "Height (Top-Down)")
+p_height_lr <- plot_filtration(height_filt_lr, "Height (Left-Right)")
+p_radial_c <- plot_filtration(radial_filt_c, "Radial (Center)")
+p_radial_b <- plot_filtration(radial_filt_b, "Radial (Bottom)")
+p_dilation <- plot_filtration(dilation_filt, "Dilation")
+p_erosion <- plot_filtration(erosion_filt, "Erosion")
+p_density <- plot_filtration(density_filt, "Density (r=3)")
+
+(p_orig + p_bin + p_dilation) /
+(p_height_td + p_height_lr + p_erosion) /
+(p_radial_c + p_radial_b + p_density)
+```
+
+
 
 # Experiments 
 

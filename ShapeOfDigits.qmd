@@ -236,6 +236,8 @@ Lasso regularization penalizes the absolute values of weights, encouraging spars
 
 Multinomial logistic regression, also known as softmax regression, provides a linear baseline for multi-class classification. It is implemented as a single dense layer with softmax activation[@James2013]. The table below provides a summary of the model architecture.
 
+Table 1: Model Architecture
+
 | Model                         | Hidden Layers (units) | Activation Functions         | Regularization                 | Output Layer |
 |-------------------------------|-----------------------|------------------------------|--------------------------------|--------------|
 | Multinomial                   | None                  | –                            | None                           | 10           |

@@ -187,7 +187,7 @@ test_images_binarized <- binarize_images(test_images_list)
 
 The motivation for this work was to compare and examine how dimension reduction via topological data analysis can be used with machine learning and classification models. Algebraic topologist, Gunnar Carlsson, has a quote, "Data has shape, shape has meaning, and meaning brings value." The work in this paper follows this idea, that if there is inherent structure present in data, it can be exploited to aid in modeling. 
 
-The Modified National Institute of Standards and Technology database is a set of handwritten digits that is frequently used to train and test image processing models. Our goal is to classify handwritten digits to their correct numeric label. We compared model performance primarily on accuracy, and secondly on the number of features or predictors. First, we want to build an accurate model that can discriminate between digits. Similar to the idea of parsimony in model selection, if two models have comparable accuracy, we will favor the model trained on fewer features. We also consider the ability of TDA-based models to assess the importance of individual predictors, providing insights into which features most influence MNIST classification
+The Modified National Institute of Standards and Technology database is a set of handwritten digits that is frequently used to train and test image processing models. Our goal is to classify handwritten digits to their correct numeric label. We compared model performance primarily on accuracy, and secondly on the number of features or predictors. First, we want to build an accurate model that can discriminate between digits. Similar to the idea of parsimony in model selection, if two models have comparable accuracy, we will favor the model trained on fewer features. We also consider the ability of TDA-based models to assess the importance of individual predictors, providing insights into which features most influence MNIST classification.
 
 
 # Background and Related Work
@@ -469,31 +469,449 @@ p_density <- plot_filtration(density_filt, "Density (r=3)")
 
 ## Data Summary
 
-- **Data Composition**:
- - **Training set**: 60,000 images (50% SD-3, 50% SD-7).
- - **Test set**: 10,000 images (originally 60,000, later reduced to 10k).
-- **Image Processing**:
- - Resized to **28x28 pixels** with anti-aliasing.
- - Normalized to center of mass alignment.
+The MNIST data set is composed of the training set of 60,000 images (50% SD-3, 50% SD-7) and Test set of 10,000 images. Each image is 28x28 pixels, and are normalized to center of mass alignment.
 
 ### EDA
 
-We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE) as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The Figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
+We examined the MNIST training dataset in terms of label distribution, pixel intensity, and overall structure. Label distribution is balanced, with approximately 6,000 examples per digit. We can expect our classifiers not to be biased toward any particular class. Pixel intensity analysis reveals that most pixels are zero, reflecting the black background of the images. We also use t-Distributed Stochastic Neighbor Embedding(t-SNE)[^2] as developed by [@Rtsne] to provide visualization of the 784-dimensional pixel space in two dimensions. The figure shows well-separated clusters for each digit, suggesting that the classes are distinguishable and that supervised models can capture these patterns effectively.
+
+[^2]: See [T-SNE Exploration by TusVasMit](https://rpubs.com/TusVasMit/T-SNEExploration) for more details.
+
+```{r dist_labels, fig.dim=c(6,3)}
+#--------------------------------------------------------
+#----------Distribution of training labels---------------
+#--------------------------------------------------------
+#first run the qmd file
+train_df <- train$images |> as.data.frame()
+train_df$labels <- train$labels |> as.factor()
 
 
-## NN dropout
+ggplot(train_df, aes(labels, fill = labels))+
+  geom_bar()+
+  labs(fill = "digit")
 
-## NN Ridge
+```
 
-## NN Lasso
 
-## Multinomial Logistic
+```{r pixel_intensity, fig.dim=c(6,3)}
+#----------------------------------------------------------
+#-----------Pixel intensity representation-----------------
+#----------------------------------------------------------
+# train_df_long <- train_df |>
+#   pivot_longer(-labels, names_to  = "covariate", values_to = "intensity")
+# saveRDS(train_df_long, "train_df_long.rds")
+train_df_long <- readRDS("train_df_long.rds")
 
-## Bayes TDA
+ggplot(train_df_long) +
+  geom_histogram(
+    aes(intensity),
+    bins = 30,
+    fill = "#2C7FB8",
+    color = "white",
+    alpha = 0.8
+  ) 
+# ggplot(train_df_long) +
+#   geom_histogram(
+#     aes(intensity),
+#     bins = 30,
+#     fill = "#2C7FB8",
+#     color = "white",
+#     alpha = 0.8
+#   ) +
+#   scale_y_log10() +
+#   labs(y = "Count (log scale)")
 
-## TDA & ML
+```
 
-# Discussion and Analysis
+```{r tnse, fig.dim=c(6,6)}
+#------------------------------------------------------------
+#----------------distribution of mnist training--------------
+#------------------------------------------------------------
+#normalized pixel values and apply t-SNE
+# tsne_results <- Rtsne(
+#   train_images,
+#   dim = 2,
+#   perplexity = 30,
+#   max_iter = 1000
+# )
+# df_tsne <- tibble(Dim1 = tsne_results$Y[, 1],
+#                   Dim2 = tsne_results$Y[, 2],
+#                   digit = train_df$labels)
+#
+# saveRDS(df_tsne, "df_tsne")
+df_tsne <- readRDS("df_tsne")
+ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
+  geom_point(alpha = .25)
+```
+
+<!-- Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space. -->
+
+
+
+## Model Perfomance
+
+### Bayes TDA Model
+
+We can see the posterior densities for dimension 0 and 1 for our model. We see that the densities are essentially all the same for dimension 0, which is what we would expect, since there are no disconnected components in any of the digits. This would not be the case for letters, e.g., the dot over lowercase 'i' and 'j'. For the 1st dimension, we some similarities, but the posterior is about what we would expect. Unfortunately, some of the posteriors are fairly similar and it may be hard to discriminate between them.
+
+```{r post_digit_plot0, fig.dim=c(10,10)}
+posterior_list_dim0 <- readRDS("btda/posterior_list_dim0.rds")
+posterior_list_dim1 <- readRDS("btda/posterior_list_dim1.rds")
+posterior_dim1_df <- posterior_list_dim1 |>
+  set_names(0:9) |>
+  list_rbind(names_to = "digit")
+posterior_dim0_df <- posterior_list_dim0 |>
+  set_names(0:9) |>
+  list_rbind(names_to = "digit")
+
+(ggplot(posterior_dim0_df, aes(x = birth, y = persistence, fill = intensity)) +
+  geom_tile() +
+  facet_wrap(~digit, ncol = 5) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(
+    title = "Posterior Densities for Digit Components (Dimension 0)",
+    x = "Birth",
+    y = "Persistence",
+    fill = "Intensity"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 12, face = "bold"))) / (ggplot(posterior_dim1_df, aes(x = birth, y = persistence, fill = intensity)) +
+  geom_tile() +
+  facet_wrap(~digit, ncol = 5) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(
+    title = "Posterior Densities for Digit Loops (Dimension 1)",
+    x = "Birth",
+    y = "Persistence",
+    fill = "Intensity"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 12, face = "bold"))) + 
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Posterior Densities by Dimension",
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+  )
+```
+
+For each of the neural network models, we can look at the confusion matrix to compare the predicted labels to the true labels.
+
+```{r mlmodelperf, fig.dim=c(6,6)}
+# --- Load Data ---
+nn_dropout_conf_mat <- readRDS("nn_dropout_conf_mat")
+nn_ridge_conf_mat <- readRDS("nn_ridge_conf_mat")
+nn_lasso_conf_mat <- readRDS("nn_lasso_conf_mat")
+mlogit_conf_mat <- readRDS("mlogit_conf_mat")
+
+# --- Prepare data frames for all plots ---
+df_dropout <- as.data.frame.matrix(nn_dropout_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_ridge <- as.data.frame.matrix(nn_ridge_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_lasso <- as.data.frame.matrix(nn_lasso_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+df_mlogit <- as.data.frame.matrix(mlogit_conf_mat$table) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(cols = -true_label, names_to = "predicted_label", values_to = "count")
+
+# --- Determine the global scale limits for the fill color ---
+global_limits <- range(
+  bind_rows(df_dropout, df_ridge, df_lasso, df_mlogit) |> pull(count)
+)
+
+# --- Define a plotting function to reduce code repetition ---
+create_heatmap <- function(data, title, limits) {
+  data |>
+    mutate(text_color = if_else(count < (0.6 * max(limits)), "black", "white")) |>
+    ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+    geom_tile(color = "gray50", linewidth = 0.5) +
+    geom_text(aes(label = count, color = text_color), size = 2) +
+    scale_fill_viridis_c(
+      option = "magma",
+      direction = -1,
+      limits = limits # Apply global limits here
+    ) +
+    scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+    coord_fixed() +
+    theme_minimal(base_size = 12) +
+    labs(
+      x = "Predicted Label",
+      y = "True Label",
+      fill = "Count",
+      title = title
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+      axis.text.y = element_text(face = "bold"),
+      panel.grid = element_blank()
+    )
+}
+
+# --- Create each plot using the function ---
+p_dropout <- create_heatmap(df_dropout, "Neural Net (Dropout)", global_limits)
+p_ridge <- create_heatmap(df_ridge, "Neural Net (Ridge)", global_limits)
+p_lasso <- create_heatmap(df_lasso, "Neural Net (Lasso)", global_limits)
+p_mlogit <- create_heatmap(df_mlogit, "Multinomial Logistic", global_limits)
+
+
+# --- Combine Plots with Patchwork, collecting guides ---
+(p_dropout + p_ridge) / (p_lasso + p_mlogit) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold"))
+  ) &
+  theme(legend.position = "none")
+
+```
+
+Now we compare with the confusion matrix for our method.
+
+```{r tda01confmatrix, fig.dim=c(4,3)}
+full_tda_01_results <- readRDS("btda/full_tda_01_results.rds")
+
+conf_matrix <- table(
+  true_label = full_tda_01_results$true_label,
+  predicted_label = full_tda_01_results$predicted_label
+)
+
+as.data.frame.matrix(conf_matrix) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  geom_text(aes(label = count, color = text_color), size = 3.5) +
+  scale_fill_viridis_c(option = "magma", direction = -1, guide = "none") +
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
+
+# accuracy <- mean(full_results$true_label == full_results$predicted_label, na.rm = TRUE)
+
+```
+
+This appears to be much worse, and seeing the accuracy of each model confirms this.
+
+```{r}
+multi_metrics <- metric_set(
+  yardstick::accuracy, 
+  yardstick::precision, 
+  yardstick::recall, 
+  yardstick::f_meas
+)
+
+results_for_metrics <- full_tda_01_results |>
+  select(true_label, predicted_label) |>
+  mutate(
+    true_label = factor(true_label, levels = 0:9),
+    predicted_label = factor(predicted_label, levels = 0:9)
+  ) 
+
+proposed_accuracy <- multi_metrics(results_for_metrics, truth = true_label, estimate = predicted_label) |> 
+  janitor::clean_names() |>
+  filter(metric == "accuracy") |> pull(estimate)
+
+# ml_results <- tibble(
+#   method = c("multinomial", "dropout nn", "ridge nn", "lasso no"),
+#   accuracy = c(mlogit_acc, nn_dropout_accu, nn_ridge_accu, nn_lasso_accu)
+# )
+# saveRDS(ml_results, "ml_results")
+
+ml_results <- readRDS("ml_results") #still a tibble so easy to edit
+ml_results <- ml_results %>%
+  mutate(method = str_replace(method, "lasso no", "lasso nn"))
+ml_results |>
+  add_row(method = "proposed", accuracy = proposed_accuracy) |>
+  kable(digits = 4)
+```
+
+The neural network with dropout performs the best, achieving an accuracy over 99%. We discuss the likely failings of our model in the discussion section.
+
+### TDA & ML
+
+For our TDA with machine learning approach. We used 1 grayscale, 8 height, 1 dilation, 1 erosion, 9 radial, and 3 density features. We then used SVM with a radial basis function(RBF) kernel and a Random Forest model. Below is a comparison between the two models for various performance metrics. SVM is equal to or better than random forest in all metrics, so we will use it for prediction.
+
+```{r loadallfeatures}
+all_features_train_data <- readRDS("rdss/all_features_train_data.rds")
+all_features_test_data <- readRDS("rdss/all_features_test_data.rds")
+all_features_rf_model <- readRDS("rdss/all_features_rf_model.rds")
+all_features_svm_model<- readRDS("rdss/all_features_svm_model.rds")
+```
+
+```{r modelcomparison, fig.dim=c(10,6)}
+model_comparison <- resamples(list(RandomForest = all_features_rf_model, SVM = all_features_svm_model))
+# dotplot(model_comparison,
+#   scales = list(x = list(rot = 45)))
+tidy_comparison <- model_comparison$values |>
+  pivot_longer(
+    cols = -Resample,
+    names_to = "key",
+    values_to = "value"
+  ) |>
+  separate(key, into = c("Model", "Metric"), sep = "~")
+
+ggplot(tidy_comparison, aes(x = value, y = Model, color = Model)) +
+  geom_point(size = 4, alpha = 0.2) +
+  scale_color_brewer(palette = "Set2") +
+  scale_x_continuous(limits = c(NA, 1.0)) +
+  facet_wrap(~ Metric, ncol = 4) +
+  labs(
+    x = "Metric Value",
+    y = NULL,
+    color = "Model Type"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, margin = margin(b = 5)),
+    plot.subtitle = element_text(size = 13, margin = margin(b = 15)),
+    strip.text = element_text(face = "bold", size = 10, color = "white"),
+    strip.background = element_rect(fill = "#525252", color = "white"),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  ) +
+  guides(color = guide_legend(override.aes = list(alpha = 1)))
+```
+
+The confusion matrix below shows how well the SVM model performed. It achieved an accuracy of 93.1%. This isn't as good as the neural network, but performs comparably for having almost 1/40th the number of features.
+
+```{r allfeaturesheatmap, fig.dim=c(4,3)}
+test_indices <- 1:10000
+predictions <- predict(all_features_svm_model, newdata = all_features_test_data)
+results <- tibble(
+  true_label = factor(mnist$test$labels[test_indices]),
+  predicted_label = predictions
+)
+
+conf_matrix_tda_full <- table(
+  true_label = results$true_label,
+  predicted_label = results$predicted_label
+)
+
+as.data.frame.matrix(conf_matrix_tda_full) %>%
+  mutate(true_label = fct_rev(rownames(.))) |>
+  pivot_longer(
+    cols = -true_label,
+    names_to = "predicted_label",
+    values_to = "count"
+  ) |>
+  
+  mutate(text_color = if_else(count < 450, "black", "white")) |>
+  ggplot(aes(x = predicted_label, y = true_label, fill = count)) +
+  geom_tile(color = "gray50", linewidth = 0.5) +
+  
+  geom_text(aes(label = count, color = text_color), size = 3.5, fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1, guide = "none") +
+  
+  scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  coord_fixed() +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Predicted Label",
+    y = "True Label",
+    fill = "Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank()
+  )
+
+# final_accuracy <- mean(results$true_label == results$predicted_label, na.rm = TRUE)
+# print(paste("Final Test Set Accuracy (Random Forest):", scales::percent(final_accuracy, accuracy = 0.1)))
+```
+
+The benefit here is that the features here may have a better interpretation. The most important variable in both the random forest and SVM model was the grayscale 0 dimensional persistent entropy. Persistent entropy is a measure of the complexity of the persistence diagram.
+
+```{r varimportance, fig.dim=c(10,4)}
+rf_model_importance <- varImp(all_features_rf_model, scale = TRUE)
+svm_model_importance <- filterVarImp(
+  x = all_features_train_data[, -which(names(all_features_train_data) == "label")],
+  y = all_features_train_data$label
+)
+
+rf_plot <- rf_model_importance$importance |>
+  as.data.frame() %>%
+  mutate(variable = rownames(.)) |>
+  pivot_longer(
+    cols = -variable,
+    names_to = "class",
+    values_to = "importance"
+  ) |>
+  mutate(
+    importance = (importance - min(importance)) / (max(importance) - min(importance))
+  ) |>
+  mutate(variable = fct_reorder(variable, importance, .fun = max, .desc = TRUE)) |>
+  ggplot(aes(x = class, y = variable, fill = importance)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_viridis_c(
+    option = "magma", 
+    direction = -1,
+    limits = c(0, 1)
+  ) +
+  labs(
+    x = "Class",
+    y = "Variable",
+    fill = "Importance",
+    title = "Random Forest Variable Importance"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+svm_plot <- as.data.frame(svm_model_importance) %>%
+  mutate(variable = rownames(.)) |>
+  pivot_longer(
+    cols = -variable,
+    names_to = "class",
+    values_to = "importance"
+  ) |>
+  mutate(
+    importance = (importance - min(importance)) / (max(importance) - min(importance))
+  ) |>
+  mutate(
+    variable = fct_reorder(variable, importance, .fun = max, .desc = TRUE),
+    class = gsub("X", "", class)
+    ) |>
+  ggplot(aes(x = class, y = variable, fill = importance)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  labs(
+    x = "Class",
+    y = NULL, 
+    fill = "Importance",
+    title = "SVM Variable Importance"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_blank() 
+      )
+
+rf_plot + svm_plot + 
+  plot_layout(guides = 'collect')
+
+```
+
+# Discussion
 
 *Comparing the models*
 

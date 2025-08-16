@@ -179,7 +179,7 @@ test_images_binarized <- binarize_images(test_images_list)
 
 <!-- *A brief overview of the paper.* -->
 
-*This paper ...*
+This paper compares traditional machine learning models with a Bayesian Topological Data Analytic model to predict the numerical labels of a handwritten digits from the MNIST dataset. It also considers a Topological Data Analysis approach paired with machine learning models, to achieve comparable accuracy to the traditional models with a fraction of the features and offer insight to how the features influence classification. We found our Bayesian model to severely underperform, whereas our machine learning models with topological features performed with high accuracy. Models that accurately classifying digits can be expanded and adapted to other character or image recognition systems. 
 
 # Introduction 
 
@@ -390,7 +390,7 @@ $$
 \lambda_{\mathcal{D}_X | D_{Y^{1:m}}}(x) = \underbrace{\color{red}{(1 - \alpha(x))\lambda_{\mathcal{D}_X}(x)}}_{\text{Prior Vanished Part}} + \underbrace{\frac{1}{m} \alpha(x) \sum_{i=1}^m \sum_{y \in D_{Y^i}} \frac{ \color{brown}{\ell(y|x)}\color{blue}{ \lambda_{\mathcal{D}_X}(x)}}{\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)} + \color{blue}{\int_{\mathbb{W}} \ell(y|u) \alpha(u) \lambda_{\mathcal{D}_X}(u) du}}}_{\text{Update from Observed Points } y} \quad \text{a.s.}
 $$
 
-Without going into all of details, Maroulas achieves this is computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$.
+Without going into all of the details in Maroulas' paper, this is achieved computationally using Gaussian mixtures for $\color{blue}\lambda_{D_x}$, $\color{brown}{\ell(y|x)}$, and $\color{darkgreen}{\lambda_{\mathcal{D}_{Y_S}}(y)}$.
 
 ### Classification
 
@@ -408,7 +408,7 @@ The filters we used after binarizing the images were height, radial, dilation, e
 
 The height filtration assigns a value to each pixel based on its projection onto a chosen direction vector, essentially measuring its "height" from a specific angle. Radial filtration works similarly, instead of assigning a value base on the distance to a vector, it assigns a value to each pixel based on its distance from a chosen center point. Dilation assigns each pixel a value corresponding to its shortest distance to a foreground pixel, where a foreground pixel is a pixel with an intensity of 1. This has the effect of "growing" or "dilating" the digit. Erosion is the inverse of dilation. It works by taking the dilation of the inverted image. This "shrinks" or "erodes" the digit. Lastly, density assigns each pixel a value based on the number of foreground neighbors within a given radius.
 
-After applying the filter to the binarized image, we have a new grayscale image, which we can get a persistence diagram for. Examples of these filters are shown below. For purposes of visibilty, a colored map is used to represent the grayscale values.
+After applying the filter to the binarized image, we have a new grayscale image, which we can get a persistence diagram for. Examples of these filters are shown below. For purposes of visibility, a colored map is used to represent the grayscale values.
 
 ```{r filtrations, fig.dim=c(6,6)}
 image_index <- which(mnist$train$labels == 8)[100]
@@ -461,8 +461,6 @@ p_density <- plot_filtration(density_filt, "Density (r=3)")
 (p_radial_c + p_radial_b + p_density)
 ```
 
-
-
 # Experiments 
 
 <!-- *Describes the experiments performed, including details on the data used.* -->
@@ -491,7 +489,6 @@ ggplot(train_df, aes(labels, fill = labels))+
   labs(fill = "digit")
 
 ```
-
 
 ```{r pixel_intensity, fig.dim=c(6,3)}
 #----------------------------------------------------------
@@ -545,8 +542,6 @@ ggplot(df_tsne, aes(Dim1, Dim2, color = digit)) +
 ```
 
 <!-- Using t-distributed Stochastic Neighbor Embedding(t-SNE), we can represent the data in 2D.[^2] t-SNE is a technique for dimension reduction that is well-suited for visualizing high-dimensional data in a lower-dimensional space. -->
-
-
 
 ## Model Perfomance
 
@@ -913,12 +908,24 @@ rf_plot + svm_plot +
 
 # Discussion
 
-*Comparing the models*
+<!-- *Comparing the models* -->
+
+Traditional machine learning methods performed very well, achieving 99% accuracy using all 784 pixels as predictors. However, our Bayesian TDA approach did not perform as well as we had hoped. The posterior densities for the persistence diagrams were not distinct enough to allow for accurate classification. The main issue is that the posterior densities for the 0 dimension were very similar across digits, making it difficult to discriminate between them. The 1st dimension was better, but not enough for discrimination. Another issue is that for a test image, if no features were detected, it was the null model, which was closest to the digit '1'. This is something we would expect for {1, 2, 3, 4, 5, 7}. 
+
+A better approach likely would have been not using the Bayesian framework and start with a simple model. For example, use persistence diagrams to obtain the Betti number[^3] for each dimension, which should split up the digits into 3 sub classes, {1, 2, 3, 4, 5, 7}, {0, 6, 9}, {8}. Then find another feature to discriminate within each subclass.
+
+Using TDA incorporated with machine learning models, we were able to achieve 93.1% accuracy with only 23 features. This was a significant improvement to our methodology, and gives similar results to the paper it was based on [@DBLP:journals/corr/abs-1910-08345]. The most important variable in both the random forest and SVM model was the grayscale 0 dimensional persistent entropy.
+
+[^3]: Informally, the kth Betti number refers to the number of k-dimensional holes on a topological surface. See more [here](https://en.wikipedia.org/wiki/Betti_number)
+
 
 # Conclusion
 
 <!-- what the project did, what models were used, potential future work -->
 
+In this project, we used a Bayesian topological data analytic approach to digit classification in the MNIST handwritten dataset and compared it with traditional machine learning models. We also used TDA as a dimension reduction technique to pair with machine learning models. We found that the Bayesian TDA approach did not perform well. However, using TDA with machine learning approach achieved 93.1% accuracy with only 23 features.
+
+Future work could involve using a simpler model with Betti numbers or other topological features. For the TDA & machine learning model, other machine learning models could be explored. Better fine tuning on the parameters may bump up the accuracy. Including more features and performing feature selection may also help model performance.
 
 \newpage
 
@@ -930,14 +937,14 @@ rf_plot + svm_plot +
 
 <!-- *Gives properly formatted references to other scholarly work that this work is built on. Note that the references should be scholarly, which means things like refereed conference and journal articles. Importantly, that rules out things like most websites, basic textbooks, and press articles.* -->
 
-<!-- \newpage -->
+\newpage
 
-<!-- # Code Appendix -->
+# Code Appendix
 
-<!-- ```{r ref.label=knitr::all_labels()} -->
-<!-- #| echo: true -->
-<!-- #| eval: false -->
-<!-- ``` -->
+```{r ref.label=knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
 
 \newpage
 

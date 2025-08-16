@@ -129,21 +129,28 @@ $$
 
 <!-- *Describes the motivation of this work and outlines the rest of the paper.* -->
 
-*The motivation for this work*
-"Data has shape,  shape has meaning, and meaning brings value."  - Gunnar Carlsson
+The motivation for this work was to compare and examine how dimension reduction via topological data analysis can be used with machine learning and classification models. Algebraic topologist, Gunnar Carlsson, has a quote, "Data has shape, shape has meaning, and meaning brings value." The work in this paper follows this idea, that if there is inherent structure present in data, it can be exploited to aid in modeling. 
+
+The Modified National Institute of Standards and Technology database is a set of handwritten digits that is frequently used to train and test image processing models. Our goal is to classify handwritten digits to their correct numeric label. We compared model performance primarily on accuracy, and secondly on the number of features or predictors. First, we want to build an accurate model that can discriminate between digits. Similar to the idea of parsimony in model selection, if two models have comparable accuracy, we will favor the model trained on fewer features. We also consider the ability to make inference on the predictors of a model.
+
 
 # Background and Related Work
 
 <!-- *Describes what other researchers in the same area have done, and how they perhaps could be improved.* --> 
 
-*about mnist* *MNIST Overview*
+## MNIST
 
-* A Bayesian Framework for Persistent Homology[@Maroulas2020-sp]
-* Classification based on Topological Data Analysis[@DBLP:journals/corr/abs-2102-03709]
-* A topological data analysis based classification method for multiple measurements[@DBLP:journals/corr/abs-1904-02971]
-* Topology based data analysis identifies a subgroup of breast cancers with a unique mutational profile and excellent survival[@Nicolau2011]
-* A Topological "Reading" Lesson: Classification of MNIST using TDA[@DBLP:journals/corr/abs-1910-08345]
-* Classification and Evaluation of Machine Learning Algorithms on the MNIST Dataset [@yeboah2025classification]
+The development of the MNIST dataset stems from early efforts in optical character recognition (OCR), a field of automating the processing of handwritten information like postal codes and census forms. Its lineage can be traced back to the late 1980s with the creation of the USPS database, a collection of 16×16 grayscale images of handwritten zip codes used to train the LeNet neural network. During the same period, the National Institute of Standards and Technology (NIST) was developing its own Special Databases for OCR research, sourcing images from census forms and high-school student samples. One such collection, SD-7, released in 1992, would later form a core part of the MNIST test set.
+
+Challenges in generalizing models across these different datasets, highlighted during a 1992 NIST/Census Bureau competition, revealed biases within the original NIST data. To address these issues, the MNIST database was created in 1994, providing a cleaner, more standardized benchmark for the machine learning community.  The dataset led to the development of several modern variations. These include EMNIST (2017), which extended the character set to include letters; QMNIST (2019), which restored the complete original test set; and Fashion MNIST (2017), a drop-in replacement featuring images of clothing items.
+
+## Related Work
+
+Topological Data Analysis is a technique for extracting structural features from datasets, proving effective in classification tasks across various domains. Work in this area includes that of Nicolau et al., who successfully used a topology-based approach to identify a distinct subgroup of breast cancers with excellent survival rates, demonstrating the method's ability to uncover patterns invisible to other methods [@Nicolau2011]. Researchers have developed more generalized TDA-based classification methods, applying them to problems involving multiple measurements and other complex data structures [@DBLP:journals/corr/abs-1904-02971; @DBLP:journals/corr/abs-2102-03709].
+
+Many traditional machine learning models have been successfully applied to MNIST [@yeboah2025classification], but it has also been a subject of interest for topological methods. Garin and Tauzin provide a "Topological 'Reading' Lesson" by applying TDA specifically to classify MNIST digits, showing that topological features can serve as effective predictors [@DBLP:journals/corr/abs-1910-08345].
+
+We try an integration of a Bayesian framework to the TDA methodology. This is inspired by the Bayesian framework for persistent homology by Maroulas et al. [@Maroulas2020-sp]. Here, we can quantify uncertainty in topological features, in an attempt to increase the predictive power of TDA-based classification models.
 
 # Methodology 
 
@@ -180,6 +187,13 @@ $$
 <!-- *Describes the experiments performed, including details on the data used.* -->
 
 ## Data Summary
+
+- **Data Composition**:
+  - **Training set**: 60,000 images (50% SD-3, 50% SD-7).
+  - **Test set**: 10,000 images (originally 60,000, later reduced to 10k).
+- **Image Processing**:
+  - Resized to **28x28 pixels** with anti-aliasing.
+  - Normalized to center of mass alignment.
 
 ### EDA
 
